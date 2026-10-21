@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAMVIEW</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0b0b0d;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
+    }
+
+    .video-box {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #151519;
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #777;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+
+    .status {
+      margin-top: 14px;
+      color: #aaa;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1>CAMVIEW</h1>
+
+    <div class="video-box">
+      <video id="video" autoplay playsinline></video>
+      <span id="message">接続待機中</span>
+    </div>
+
+    <div class="status" id="status">サーバーに接続しています…</div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on("connect", () => {
+      document.getElementById("status").textContent =
+        "サーバーに接続しました";
+    });
+
+    socket.on("disconnect", () => {
+      document.getElementById("status").textContent =
+        "サーバーから切断されました";
+    });
+  </script>
+</body>
+</html>
