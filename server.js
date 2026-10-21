@@ -1,16 +1,17 @@
 const express = require("express");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-app.get("/", (req, res) => {
-  res.send("CAMVIEW server is running");
-});
+// publicフォルダをWeb公開
+app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", app: "CAMVIEW" });
