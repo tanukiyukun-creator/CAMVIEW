@@ -7,14 +7,18 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*"
+  }
 });
 
-// publicフォルダをWeb公開
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", app: "CAMVIEW" });
+  res.json({
+    status: "ok",
+    app: "CAMVIEW"
+  });
 });
 
 io.on("connection", (socket) => {
@@ -22,7 +26,13 @@ io.on("connection", (socket) => {
 
   socket.on("join", (room) => {
     socket.join(room);
+    socket.data.room = room;
+
     socket.to(room).emit("peer-joined");
+  });
+
+  socket.on("request-offer", (data) => {
+    socket.to(data.room).emit("request-offer");
   });
 
   socket.on("offer", (data) => {
