@@ -1,93 +1,197 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
   <title>CAMVIEW</title>
 
+
   <style>
+
     * {
       box-sizing: border-box;
     }
 
+
     body {
+
       margin: 0;
+
       min-height: 100vh;
+
       background: #09090b;
+
       color: #fff;
-      font-family: Arial, sans-serif;
+
+      font-family:
+        Arial,
+        sans-serif;
+
     }
+
 
     .app {
-      width: min(1100px, 100%);
+
+      width:
+        min(1100px, 100%);
+
       margin: auto;
+
       padding: 24px;
+
     }
+
 
     h1 {
-      margin: 0 0 20px;
+
+      margin:
+        0 0 20px;
+
       font-size: 28px;
+
     }
 
+
     .video-box {
+
       width: 100%;
+
       aspect-ratio: 16 / 9;
+
       background: #151518;
+
       border-radius: 18px;
+
       overflow: hidden;
 
       display: flex;
+
       align-items: center;
+
       justify-content: center;
+
     }
+
 
     video {
+
       width: 100%;
+
       height: 100%;
+
       object-fit: contain;
+
       display: none;
+
       background: #000;
+
     }
+
 
     #message {
+
       color: #777;
+
       font-size: 16px;
+
     }
+
 
     .status {
+
       margin-top: 14px;
+
       color: #aaa;
+
       font-size: 14px;
+
     }
+
 
     .buttons {
+
       margin-top: 20px;
+
       display: flex;
+
       gap: 10px;
+
       flex-wrap: wrap;
+
     }
+
 
     button {
+
       border: 0;
+
       border-radius: 10px;
-      padding: 13px 20px;
+
+      padding:
+        13px 20px;
+
       background: #fff;
+
       color: #111;
+
       font-size: 15px;
+
       cursor: pointer;
+
     }
 
+
     button:active {
-      transform: scale(0.98);
+
+      transform:
+        scale(0.98);
+
     }
+
+
+    .camera-buttons {
+
+      display: none;
+
+      margin-top: 12px;
+
+      gap: 10px;
+
+      flex-wrap: wrap;
+
+    }
+
+
+    .camera-buttons button {
+
+      background: #222;
+
+      color: #fff;
+
+      border:
+        1px solid #444;
+
+    }
+
   </style>
+
 </head>
+
 
 <body>
 
+
   <main class="app">
 
+
     <h1>CAMVIEW</h1>
+
 
     <div class="video-box">
 
@@ -103,11 +207,15 @@
 
     </div>
 
+
     <div
       class="status"
       id="status">
+
       サーバーに接続しています…
+
     </div>
+
 
     <div class="buttons">
 
@@ -121,25 +229,63 @@
 
     </div>
 
+
+    <div
+      class="camera-buttons"
+      id="cameraButtons">
+
+      <button id="rearButton">
+        外カメラ
+      </button>
+
+      <button id="frontButton">
+        内カメラ
+      </button>
+
+    </div>
+
+
   </main>
 
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script
+    src="/socket.io/socket.io.js">
+  </script>
+
 
   <script>
 
+
     const socket = io();
 
-    const room = "camview-main";
+
+    const room =
+      "camview-main";
+
 
     const remoteVideo =
-      document.getElementById("remoteVideo");
+      document.getElementById(
+        "remoteVideo"
+      );
+
 
     const message =
-      document.getElementById("message");
+      document.getElementById(
+        "message"
+      );
+
 
     const status =
-      document.getElementById("status");
+      document.getElementById(
+        "status"
+      );
+
+
+    const cameraButtons =
+      document.getElementById(
+        "cameraButtons"
+      );
+
 
     let peer = null;
 
@@ -150,20 +296,26 @@
     // サーバー接続
     // =====================================
 
-    socket.on("connect", () => {
+    socket.on(
+      "connect",
+      () => {
 
-      status.textContent =
-        "サーバーに接続しました";
+        status.textContent =
+          "サーバーに接続しました";
 
-    });
+      }
+    );
 
 
-    socket.on("disconnect", () => {
+    socket.on(
+      "disconnect",
+      () => {
 
-      status.textContent =
-        "サーバーから切断されました";
+        status.textContent =
+          "サーバーから切断されました";
 
-    });
+      }
+    );
 
 
     // =====================================
@@ -171,6 +323,7 @@
     // =====================================
 
     function createPeer() {
+
 
       peer =
         new RTCPeerConnection({
@@ -196,10 +349,6 @@
         });
 
 
-      // -----------------------------------
-      // ICE
-      // -----------------------------------
-
       peer.onicecandidate =
         event => {
 
@@ -207,20 +356,18 @@
             return;
           }
 
+
           socket.emit(
             "ice-candidate",
             {
               room: room,
-              candidate: event.candidate
+              candidate:
+                event.candidate
             }
           );
 
         };
 
-
-      // -----------------------------------
-      // 映像・音声受信
-      // -----------------------------------
 
       peer.ontrack =
         event => {
@@ -229,17 +376,22 @@
             return;
           }
 
+
           remoteVideo.srcObject =
             event.streams[0];
+
 
           remoteVideo.style.display =
             "block";
 
+
           message.style.display =
             "none";
 
+
           status.textContent =
             "映像・音声を受信しています";
+
 
           remoteVideo
             .play()
@@ -247,10 +399,6 @@
 
         };
 
-
-      // -----------------------------------
-      // 接続状態
-      // -----------------------------------
 
       peer.onconnectionstatechange =
         () => {
@@ -282,30 +430,144 @@
 
           }
 
+        };
 
-          if (state === "closed") {
+    }
 
-            status.textContent =
-              "接続終了";
+
+    // =====================================
+    // カメラ取得
+    // =====================================
+
+    async function startCamera(
+      facingMode
+    ) {
+
+
+      status.textContent =
+        "カメラを切り替えています…";
+
+
+      try {
+
+
+        // 現在のカメラを停止
+
+        if (localStream) {
+
+          localStream
+            .getTracks()
+            .forEach(
+              track => track.stop()
+            );
+
+        }
+
+
+        const newStream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+
+              video: {
+
+                width: {
+                  ideal: 1280,
+                  max: 1280
+                },
+
+                height: {
+                  ideal: 720,
+                  max: 720
+                },
+
+                frameRate: {
+                  ideal: 30,
+                  max: 30
+                },
+
+                facingMode:
+                  facingMode
+
+              },
+
+              audio: {
+
+                echoCancellation:
+                  true,
+
+                noiseSuppression:
+                  true,
+
+                autoGainControl:
+                  true
+
+              }
+
+            });
+
+
+        localStream =
+          newStream;
+
+
+        // ---------------------------------
+        // WebRTCの映像トラックを差し替え
+        // ---------------------------------
+
+        const videoTrack =
+          localStream.getVideoTracks()[0];
+
+
+        if (peer) {
+
+          const sender =
+            peer
+              .getSenders()
+              .find(
+                s =>
+                  s.track &&
+                  s.track.kind ===
+                  "video"
+              );
+
+
+          if (sender) {
+
+            await sender.replaceTrack(
+              videoTrack
+            );
+
+          } else {
+
+            peer.addTrack(
+              videoTrack,
+              localStream
+            );
 
           }
 
-        };
+        }
 
 
-      // -----------------------------------
-      // ICE状態
-      // -----------------------------------
+        status.textContent =
+          facingMode === "environment"
+            ? "外カメラに切り替えました"
+            : "内カメラに切り替えました";
 
-      peer.oniceconnectionstatechange =
-        () => {
 
-          console.log(
-            "ICE:",
-            peer.iceConnectionState
-          );
+      }
 
-        };
+      catch (error) {
+
+        console.error(error);
+
+
+        status.textContent =
+          "カメラ切替エラー: "
+          + error.name;
+
+      }
 
     }
 
@@ -315,7 +577,9 @@
     // =====================================
 
     document
-      .getElementById("cameraButton")
+      .getElementById(
+        "cameraButton"
+      )
       .addEventListener(
         "click",
         async () => {
@@ -326,8 +590,10 @@
 
           try {
 
+
             localStream =
-              await navigator.mediaDevices
+              await navigator
+                .mediaDevices
                 .getUserMedia({
 
                   video: {
@@ -354,11 +620,14 @@
 
                   audio: {
 
-                    echoCancellation: true,
+                    echoCancellation:
+                      true,
 
-                    noiseSuppression: true,
+                    noiseSuppression:
+                      true,
 
-                    autoGainControl: true
+                    autoGainControl:
+                      true
 
                   }
 
@@ -368,20 +637,18 @@
             createPeer();
 
 
-            // --------------------------------
-            // カメラ映像をWebRTCへ追加
-            // --------------------------------
-
             localStream
               .getTracks()
-              .forEach(track => {
+              .forEach(
+                track => {
 
-                peer.addTrack(
-                  track,
-                  localStream
-                );
+                  peer.addTrack(
+                    track,
+                    localStream
+                  );
 
-              });
+                }
+              );
 
 
             socket.emit(
@@ -393,11 +660,13 @@
             status.textContent =
               "カメラとして接続中";
 
+
           }
 
           catch (error) {
 
             console.error(error);
+
 
             status.textContent =
               "カメラ・マイクを使用できません: "
@@ -414,10 +683,13 @@
     // =====================================
 
     document
-      .getElementById("viewerButton")
+      .getElementById(
+        "viewerButton"
+      )
       .addEventListener(
         "click",
         () => {
+
 
           createPeer();
 
@@ -431,17 +703,111 @@
           status.textContent =
             "カメラを探しています…";
 
+
+          // 閲覧側にカメラ切替ボタンを表示
+
+          cameraButtons.style.display =
+            "flex";
+
         }
       );
 
 
     // =====================================
-    // カメラ側
+    // 外カメラ
+    // =====================================
+
+    document
+      .getElementById(
+        "rearButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+
+          socket.emit(
+            "switch-camera",
+            {
+
+              room: room,
+
+              camera:
+                "environment"
+
+            }
+          );
+
+
+          status.textContent =
+            "外カメラへ切り替えています…";
+
+        }
+      );
+
+
+    // =====================================
+    // 内カメラ
+    // =====================================
+
+    document
+      .getElementById(
+        "frontButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+
+          socket.emit(
+            "switch-camera",
+            {
+
+              room: room,
+
+              camera:
+                "user"
+
+            }
+          );
+
+
+          status.textContent =
+            "内カメラへ切り替えています…";
+
+        }
+      );
+
+
+    // =====================================
+    // カメラ側：切替命令
+    // =====================================
+
+    socket.on(
+      "switch-camera",
+      async data => {
+
+        if (!localStream) {
+          return;
+        }
+
+
+        await startCamera(
+          data.camera
+        );
+
+      }
+    );
+
+
+    // =====================================
+    // 相手が入室
     // =====================================
 
     socket.on(
       "peer-joined",
       async () => {
+
 
         if (!localStream || !peer) {
           return;
@@ -449,6 +815,7 @@
 
 
         try {
+
 
           const offer =
             await peer.createOffer({
@@ -470,10 +837,14 @@
           socket.emit(
             "offer",
             {
+
               room: room,
+
               offer: offer
+
             }
           );
+
 
         }
 
@@ -497,6 +868,7 @@
 
         try {
 
+
           if (!peer) {
             createPeer();
           }
@@ -519,16 +891,21 @@
           socket.emit(
             "answer",
             {
+
               room: room,
+
               answer: answer
+
             }
           );
+
 
         }
 
         catch (error) {
 
           console.error(error);
+
 
           status.textContent =
             "接続処理でエラーが発生しました";
@@ -549,6 +926,7 @@
 
         try {
 
+
           if (!peer) {
             return;
           }
@@ -557,6 +935,7 @@
           await peer.setRemoteDescription(
             answer
           );
+
 
         }
 
@@ -571,7 +950,7 @@
 
 
     // =====================================
-    // ICE Candidate
+    // ICE
     // =====================================
 
     socket.on(
@@ -579,6 +958,7 @@
       async candidate => {
 
         try {
+
 
           if (!peer) {
             return;
@@ -589,6 +969,7 @@
             candidate
           );
 
+
         }
 
         catch (error) {
@@ -600,7 +981,9 @@
       }
     );
 
+
   </script>
 
 </body>
+
 </html>
