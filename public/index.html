@@ -75,10 +75,6 @@
       font-size: 15px;
       cursor: pointer;
     }
-
-    button:active {
-      transform: scale(0.98);
-    }
   </style>
 </head>
 
@@ -89,7 +85,13 @@
     <h1>CAMVIEW</h1>
 
     <div class="video-box">
-      <video id="remoteVideo" autoplay playsinline></video>
+      <video
+        id="remoteVideo"
+        autoplay
+        playsinline
+        controls="false">
+      </video>
+
       <span id="message">接続待機中</span>
     </div>
 
@@ -158,8 +160,9 @@
             urls:
               "stun:stun.l.google.com:19302"
           }
-        ]
+        ],
 
+        bundlePolicy: "max-bundle"
       });
 
 
@@ -192,7 +195,40 @@
           "none";
 
         status.textContent =
-          "映像を受信しています";
+          "映像・音声を受信しています";
+
+        remoteVideo.play().catch(() => {});
+
+      };
+
+
+      peer.onconnectionstatechange = () => {
+
+        if (!peer) return;
+
+        const state =
+          peer.connectionState;
+
+        if (state === "connected") {
+
+          status.textContent =
+            "接続しました";
+
+        }
+
+        if (state === "disconnected") {
+
+          status.textContent =
+            "接続が切れました";
+
+        }
+
+        if (state === "failed") {
+
+          status.textContent =
+            "接続に失敗しました";
+
+        }
 
       };
 
@@ -207,13 +243,36 @@
       .getElementById("cameraButton")
       .addEventListener("click", async () => {
 
+        status.textContent =
+          "カメラとマイクを起動しています…";
+
         try {
 
           localStream =
             await navigator.mediaDevices
               .getUserMedia({
-                video: true,
-                audio: false
+
+                video: {
+                  width: {
+                    ideal: 1280
+                  },
+
+                  height: {
+                    ideal: 720
+                  },
+
+                  frameRate: {
+                    ideal: 30,
+                    max: 30
+                  }
+                },
+
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true
+                }
+
               });
 
 
@@ -239,15 +298,15 @@
 
 
           status.textContent =
-            "カメラとして待機中";
-
+            "カメラとして接続中";
 
         } catch (error) {
 
           console.error(error);
 
           status.textContent =
-            "カメラを使用できません";
+            "カメラ・マイクを使用できません: "
+            + error.name;
 
         }
 
@@ -283,28 +342,37 @@
       "peer-joined",
       async () => {
 
-        // カメラ側だけがOfferを作る
         if (!localStream || !peer) {
           return;
         }
 
+        try {
 
-        const offer =
-          await peer.createOffer();
+          const offer =
+            await peer.createOffer({
 
+              offerToReceiveAudio: true,
+              offerToReceiveVideo: true
 
-        await peer.setLocalDescription(
-          offer
-        );
+            });
 
+          await peer.setLocalDescription(
+            offer
+          );
 
-        socket.emit(
-          "offer",
-          {
-            room: room,
-            offer: offer
-          }
-        );
+          socket.emit(
+            "offer",
+            {
+              room: room,
+              offer: offer
+            }
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+        }
 
       }
     );
@@ -318,32 +386,39 @@
       "offer",
       async (offer) => {
 
-        if (!peer) {
-          createPeer();
-        }
+        try {
 
-
-        await peer.setRemoteDescription(
-          offer
-        );
-
-
-        const answer =
-          await peer.createAnswer();
-
-
-        await peer.setLocalDescription(
-          answer
-        );
-
-
-        socket.emit(
-          "answer",
-          {
-            room: room,
-            answer: answer
+          if (!peer) {
+            createPeer();
           }
-        );
+
+          await peer.setRemoteDescription(
+            offer
+          );
+
+          const answer =
+            await peer.createAnswer();
+
+          await peer.setLocalDescription(
+            answer
+          );
+
+          socket.emit(
+            "answer",
+            {
+              room: room,
+              answer: answer
+            }
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+          status.textContent =
+            "接続処理でエラーが発生しました";
+
+        }
 
       }
     );
@@ -357,11 +432,19 @@
       "answer",
       async (answer) => {
 
-        if (!peer) return;
+        try {
 
-        await peer.setRemoteDescription(
-          answer
-        );
+          if (!peer) return;
+
+          await peer.setRemoteDescription(
+            answer
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+        }
 
       }
     );
