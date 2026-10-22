@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CAMVIEW</title>
+
   <style>
     * {
       box-sizing: border-box;
@@ -12,16 +13,14 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: #0b0b0d;
-      color: white;
+      background: #09090b;
+      color: #fff;
       font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .app {
       width: min(1100px, 100%);
+      margin: auto;
       padding: 24px;
     }
 
@@ -33,13 +32,13 @@
     .video-box {
       width: 100%;
       aspect-ratio: 16 / 9;
-      background: #151519;
+      background: #151518;
       border-radius: 18px;
       overflow: hidden;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #777;
     }
 
     video {
@@ -49,39 +48,351 @@
       display: none;
     }
 
+    #message {
+      color: #777;
+      font-size: 16px;
+    }
+
     .status {
       margin-top: 14px;
       color: #aaa;
       font-size: 14px;
     }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 20px;
+      background: #fff;
+      color: #111;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 
 <body>
+
   <main class="app">
+
     <h1>CAMVIEW</h1>
 
     <div class="video-box">
-      <video id="video" autoplay playsinline></video>
+      <video id="remoteVideo" autoplay playsinline></video>
       <span id="message">接続待機中</span>
     </div>
 
-    <div class="status" id="status">サーバーに接続しています…</div>
+    <div class="status" id="status">
+      サーバーに接続しています…
+    </div>
+
+    <div class="buttons">
+      <button id="cameraButton">カメラを開始</button>
+      <button id="viewerButton">閲覧する</button>
+    </div>
+
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
+
   <script>
+
     const socket = io();
 
+    const room = "camview-main";
+
+    const remoteVideo =
+      document.getElementById("remoteVideo");
+
+    const message =
+      document.getElementById("message");
+
+    const status =
+      document.getElementById("status");
+
+    let peer = null;
+    let localStream = null;
+
+
+    // =========================
+    // サーバー接続
+    // =========================
+
     socket.on("connect", () => {
-      document.getElementById("status").textContent =
+
+      status.textContent =
         "サーバーに接続しました";
+
     });
 
+
     socket.on("disconnect", () => {
-      document.getElementById("status").textContent =
+
+      status.textContent =
         "サーバーから切断されました";
+
     });
+
+
+    // =========================
+    // WebRTC
+    // =========================
+
+    function createPeer() {
+
+      peer = new RTCPeerConnection({
+
+        iceServers: [
+          {
+            urls:
+              "stun:stun.l.google.com:19302"
+          }
+        ]
+
+      });
+
+
+      peer.onicecandidate = (event) => {
+
+        if (!event.candidate) return;
+
+        socket.emit(
+          "ice-candidate",
+          {
+            room: room,
+            candidate: event.candidate
+          }
+        );
+
+      };
+
+
+      peer.ontrack = (event) => {
+
+        if (!event.streams[0]) return;
+
+        remoteVideo.srcObject =
+          event.streams[0];
+
+        remoteVideo.style.display =
+          "block";
+
+        message.style.display =
+          "none";
+
+        status.textContent =
+          "映像を受信しています";
+
+      };
+
+    }
+
+
+    // =========================
+    // カメラ開始
+    // =========================
+
+    document
+      .getElementById("cameraButton")
+      .addEventListener("click", async () => {
+
+        try {
+
+          localStream =
+            await navigator.mediaDevices
+              .getUserMedia({
+                video: true,
+                audio: false
+              });
+
+
+          createPeer();
+
+
+          localStream
+            .getTracks()
+            .forEach(track => {
+
+              peer.addTrack(
+                track,
+                localStream
+              );
+
+            });
+
+
+          socket.emit(
+            "join",
+            room
+          );
+
+
+          status.textContent =
+            "カメラとして待機中";
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          status.textContent =
+            "カメラを使用できません";
+
+        }
+
+      });
+
+
+    // =========================
+    // 閲覧開始
+    // =========================
+
+    document
+      .getElementById("viewerButton")
+      .addEventListener("click", () => {
+
+        createPeer();
+
+        socket.emit(
+          "join",
+          room
+        );
+
+        status.textContent =
+          "カメラを探しています…";
+
+      });
+
+
+    // =========================
+    // 相手が入室
+    // =========================
+
+    socket.on(
+      "peer-joined",
+      async () => {
+
+        // カメラ側だけがOfferを作る
+        if (!localStream || !peer) {
+          return;
+        }
+
+
+        const offer =
+          await peer.createOffer();
+
+
+        await peer.setLocalDescription(
+          offer
+        );
+
+
+        socket.emit(
+          "offer",
+          {
+            room: room,
+            offer: offer
+          }
+        );
+
+      }
+    );
+
+
+    // =========================
+    // Offer受信
+    // =========================
+
+    socket.on(
+      "offer",
+      async (offer) => {
+
+        if (!peer) {
+          createPeer();
+        }
+
+
+        await peer.setRemoteDescription(
+          offer
+        );
+
+
+        const answer =
+          await peer.createAnswer();
+
+
+        await peer.setLocalDescription(
+          answer
+        );
+
+
+        socket.emit(
+          "answer",
+          {
+            room: room,
+            answer: answer
+          }
+        );
+
+      }
+    );
+
+
+    // =========================
+    // Answer受信
+    // =========================
+
+    socket.on(
+      "answer",
+      async (answer) => {
+
+        if (!peer) return;
+
+        await peer.setRemoteDescription(
+          answer
+        );
+
+      }
+    );
+
+
+    // =========================
+    // ICE受信
+    // =========================
+
+    socket.on(
+      "ice-candidate",
+      async (candidate) => {
+
+        try {
+
+          if (!peer) return;
+
+          await peer.addIceCandidate(
+            candidate
+          );
+
+        } catch (error) {
+
+          console.error(error);
+
+        }
+
+      }
+    );
+
   </script>
+
 </body>
 </html>
