@@ -46,6 +46,7 @@
       height: 100%;
       object-fit: contain;
       display: none;
+      background: #000;
     }
 
     #message {
@@ -75,6 +76,10 @@
       font-size: 15px;
       cursor: pointer;
     }
+
+    button:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 
@@ -85,26 +90,39 @@
     <h1>CAMVIEW</h1>
 
     <div class="video-box">
+
       <video
         id="remoteVideo"
         autoplay
-        playsinline
-        controls="false">
+        playsinline>
       </video>
 
-      <span id="message">接続待機中</span>
+      <span id="message">
+        接続待機中
+      </span>
+
     </div>
 
-    <div class="status" id="status">
+    <div
+      class="status"
+      id="status">
       サーバーに接続しています…
     </div>
 
     <div class="buttons">
-      <button id="cameraButton">カメラを開始</button>
-      <button id="viewerButton">閲覧する</button>
+
+      <button id="cameraButton">
+        カメラを開始
+      </button>
+
+      <button id="viewerButton">
+        閲覧する
+      </button>
+
     </div>
 
   </main>
+
 
   <script src="/socket.io/socket.io.js"></script>
 
@@ -124,12 +142,13 @@
       document.getElementById("status");
 
     let peer = null;
+
     let localStream = null;
 
 
-    // =========================
+    // =====================================
     // サーバー接続
-    // =========================
+    // =====================================
 
     socket.on("connect", () => {
 
@@ -147,148 +166,260 @@
     });
 
 
-    // =========================
+    // =====================================
     // WebRTC
-    // =========================
+    // =====================================
 
     function createPeer() {
 
-      peer = new RTCPeerConnection({
+      peer =
+        new RTCPeerConnection({
 
-        iceServers: [
-          {
-            urls:
-              "stun:stun.l.google.com:19302"
+          iceServers: [
+
+            {
+              urls:
+                "stun:stun.l.google.com:19302"
+            }
+
+          ],
+
+          bundlePolicy:
+            "max-bundle",
+
+          rtcpMuxPolicy:
+            "require",
+
+          iceCandidatePoolSize:
+            10
+
+        });
+
+
+      // -----------------------------------
+      // ICE
+      // -----------------------------------
+
+      peer.onicecandidate =
+        event => {
+
+          if (!event.candidate) {
+            return;
           }
-        ],
 
-        bundlePolicy: "max-bundle"
-      });
+          socket.emit(
+            "ice-candidate",
+            {
+              room: room,
+              candidate: event.candidate
+            }
+          );
+
+        };
 
 
-      peer.onicecandidate = (event) => {
+      // -----------------------------------
+      // 映像・音声受信
+      // -----------------------------------
 
-        if (!event.candidate) return;
+      peer.ontrack =
+        event => {
 
-        socket.emit(
-          "ice-candidate",
-          {
-            room: room,
-            candidate: event.candidate
+          if (!event.streams[0]) {
+            return;
           }
-        );
 
-      };
+          remoteVideo.srcObject =
+            event.streams[0];
 
+          remoteVideo.style.display =
+            "block";
 
-      peer.ontrack = (event) => {
-
-        if (!event.streams[0]) return;
-
-        remoteVideo.srcObject =
-          event.streams[0];
-
-        remoteVideo.style.display =
-          "block";
-
-        message.style.display =
-          "none";
-
-        status.textContent =
-          "映像・音声を受信しています";
-
-        remoteVideo.play().catch(() => {});
-
-      };
-
-
-      peer.onconnectionstatechange = () => {
-
-        if (!peer) return;
-
-        const state =
-          peer.connectionState;
-
-        if (state === "connected") {
+          message.style.display =
+            "none";
 
           status.textContent =
-            "接続しました";
+            "映像・音声を受信しています";
 
-        }
+          remoteVideo
+            .play()
+            .catch(() => {});
 
-        if (state === "disconnected") {
+        };
 
-          status.textContent =
-            "接続が切れました";
 
-        }
+      // -----------------------------------
+      // 接続状態
+      // -----------------------------------
 
-        if (state === "failed") {
+      peer.onconnectionstatechange =
+        () => {
 
-          status.textContent =
-            "接続に失敗しました";
+          const state =
+            peer.connectionState;
 
-        }
 
-      };
+          if (state === "connected") {
+
+            status.textContent =
+              "接続しました";
+
+          }
+
+
+          if (state === "disconnected") {
+
+            status.textContent =
+              "接続が不安定です";
+
+          }
+
+
+          if (state === "failed") {
+
+            status.textContent =
+              "接続に失敗しました";
+
+          }
+
+
+          if (state === "closed") {
+
+            status.textContent =
+              "接続終了";
+
+          }
+
+        };
+
+
+      // -----------------------------------
+      // ICE状態
+      // -----------------------------------
+
+      peer.oniceconnectionstatechange =
+        () => {
+
+          console.log(
+            "ICE:",
+            peer.iceConnectionState
+          );
+
+        };
 
     }
 
 
-    // =========================
+    // =====================================
     // カメラ開始
-    // =========================
+    // =====================================
 
     document
       .getElementById("cameraButton")
-      .addEventListener("click", async () => {
+      .addEventListener(
+        "click",
+        async () => {
 
-        status.textContent =
-          "カメラとマイクを起動しています…";
+          status.textContent =
+            "カメラとマイクを起動しています…";
 
-        try {
 
-          localStream =
-            await navigator.mediaDevices
-              .getUserMedia({
+          try {
 
-                video: {
-                  width: {
-                    ideal: 1280
+            localStream =
+              await navigator.mediaDevices
+                .getUserMedia({
+
+                  video: {
+
+                    width: {
+                      ideal: 1280,
+                      max: 1280
+                    },
+
+                    height: {
+                      ideal: 720,
+                      max: 720
+                    },
+
+                    frameRate: {
+                      ideal: 30,
+                      max: 30
+                    },
+
+                    facingMode:
+                      "environment"
+
                   },
 
-                  height: {
-                    ideal: 720
-                  },
+                  audio: {
 
-                  frameRate: {
-                    ideal: 30,
-                    max: 30
+                    echoCancellation: true,
+
+                    noiseSuppression: true,
+
+                    autoGainControl: true
+
                   }
-                },
 
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true
-                }
+                });
+
+
+            createPeer();
+
+
+            // --------------------------------
+            // カメラ映像をWebRTCへ追加
+            // --------------------------------
+
+            localStream
+              .getTracks()
+              .forEach(track => {
+
+                peer.addTrack(
+                  track,
+                  localStream
+                );
 
               });
 
 
+            socket.emit(
+              "join",
+              room
+            );
+
+
+            status.textContent =
+              "カメラとして接続中";
+
+          }
+
+          catch (error) {
+
+            console.error(error);
+
+            status.textContent =
+              "カメラ・マイクを使用できません: "
+              + error.name;
+
+          }
+
+        }
+      );
+
+
+    // =====================================
+    // 閲覧開始
+    // =====================================
+
+    document
+      .getElementById("viewerButton")
+      .addEventListener(
+        "click",
+        () => {
+
           createPeer();
-
-
-          localStream
-            .getTracks()
-            .forEach(track => {
-
-              peer.addTrack(
-                track,
-                localStream
-              );
-
-            });
 
 
           socket.emit(
@@ -298,45 +429,15 @@
 
 
           status.textContent =
-            "カメラとして接続中";
-
-        } catch (error) {
-
-          console.error(error);
-
-          status.textContent =
-            "カメラ・マイクを使用できません: "
-            + error.name;
+            "カメラを探しています…";
 
         }
-
-      });
-
-
-    // =========================
-    // 閲覧開始
-    // =========================
-
-    document
-      .getElementById("viewerButton")
-      .addEventListener("click", () => {
-
-        createPeer();
-
-        socket.emit(
-          "join",
-          room
-        );
-
-        status.textContent =
-          "カメラを探しています…";
-
-      });
+      );
 
 
-    // =========================
-    // 相手が入室
-    // =========================
+    // =====================================
+    // カメラ側
+    // =====================================
 
     socket.on(
       "peer-joined",
@@ -346,19 +447,25 @@
           return;
         }
 
+
         try {
 
           const offer =
             await peer.createOffer({
 
-              offerToReceiveAudio: true,
-              offerToReceiveVideo: true
+              offerToReceiveAudio:
+                true,
+
+              offerToReceiveVideo:
+                true
 
             });
+
 
           await peer.setLocalDescription(
             offer
           );
+
 
           socket.emit(
             "offer",
@@ -368,7 +475,9 @@
             }
           );
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           console.error(error);
 
@@ -378,13 +487,13 @@
     );
 
 
-    // =========================
-    // Offer受信
-    // =========================
+    // =====================================
+    // Offer
+    // =====================================
 
     socket.on(
       "offer",
-      async (offer) => {
+      async offer => {
 
         try {
 
@@ -392,16 +501,20 @@
             createPeer();
           }
 
+
           await peer.setRemoteDescription(
             offer
           );
 
+
           const answer =
             await peer.createAnswer();
+
 
           await peer.setLocalDescription(
             answer
           );
+
 
           socket.emit(
             "answer",
@@ -411,7 +524,9 @@
             }
           );
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           console.error(error);
 
@@ -424,23 +539,28 @@
     );
 
 
-    // =========================
-    // Answer受信
-    // =========================
+    // =====================================
+    // Answer
+    // =====================================
 
     socket.on(
       "answer",
-      async (answer) => {
+      async answer => {
 
         try {
 
-          if (!peer) return;
+          if (!peer) {
+            return;
+          }
+
 
           await peer.setRemoteDescription(
             answer
           );
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           console.error(error);
 
@@ -450,23 +570,28 @@
     );
 
 
-    // =========================
-    // ICE受信
-    // =========================
+    // =====================================
+    // ICE Candidate
+    // =====================================
 
     socket.on(
       "ice-candidate",
-      async (candidate) => {
+      async candidate => {
 
         try {
 
-          if (!peer) return;
+          if (!peer) {
+            return;
+          }
+
 
           await peer.addIceCandidate(
             candidate
           );
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           console.error(error);
 
