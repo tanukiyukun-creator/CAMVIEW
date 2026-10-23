@@ -1,423 +1,559 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CAMVIEW</title>
+  <meta charset="UTF-8">
 
-<style>
-*{box-sizing:border-box}
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-body{
-  margin:0;
-  background:#09090b;
-  color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-}
+  <title>CAMVIEW</title>
 
-.app{
-  max-width:1100px;
-  margin:auto;
-  padding:22px;
-}
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-h1{
-  margin:0 0 16px;
-}
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0b0b0d;
+      color: #fff;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
 
-.video{
-  position:relative;
-  aspect-ratio:16/9;
-  background:#151518;
-  border-radius:18px;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-.video video{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  background:#000;
-  display:none;
-}
+    .app {
+      width: min(920px, 94vw);
+      padding: 24px 0 40px;
+    }
 
-.msg{
-  color:#777;
-}
+    h1 {
+      margin: 0 0 18px;
+      font-size: 28px;
+      letter-spacing: 2px;
+    }
 
-.status{
-  margin-top:12px;
-  color:#aaa;
-  min-height:20px;
-  font-size:14px;
-}
+    .video-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #151519;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #29292f;
+    }
 
-.buttons,
-.sub{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:16px;
-}
+    #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
 
-button,
-select{
-  border:0;
-  border-radius:11px;
-  padding:12px 16px;
-  font-size:15px;
-}
+    #message {
+      position: absolute;
+      inset: 0;
 
-button{
-  background:#fff;
-  color:#111;
-  cursor:pointer;
-}
+      display: flex;
+      justify-content: center;
+      align-items: center;
 
-button.secondary{
-  background:#222;
-  color:#fff;
-  border:1px solid #444;
-}
+      color: #aaa;
+      font-size: 15px;
+    }
 
-button.talking{
-  background:#ccc;
-}
+    .status {
+      margin-top: 14px;
+      min-height: 22px;
 
-.panel{
-  margin-top:16px;
-  padding:16px;
-  border:1px solid #29292d;
-  border-radius:16px;
-  background:#101014;
-}
+      color: #bbb;
+      font-size: 14px;
+    }
 
-.row{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-  margin:9px 0;
-  color:#bbb;
-}
+    .buttons,
+    .camera-buttons,
+    .talk-area,
+    .quality-area {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
 
-.panel.hidden,
-.sub.hidden{
-  display:none;
-}
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 18px;
 
-.telemetry{
-  margin-top:12px;
-  color:#888;
-  font-size:12px;
-}
-</style>
+      background: #fff;
+      color: #111;
+
+      font-size: 14px;
+      font-weight: 600;
+
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button.dark {
+      background: #202025;
+      color: #fff;
+      border: 1px solid #35353d;
+    }
+
+    button.talk {
+      background: #fff;
+      min-width: 150px;
+    }
+
+    button.talk.active {
+      background: #dcdcdc;
+    }
+
+    .camera-buttons,
+    .talk-area,
+    .quality-area {
+      display: none;
+    }
+
+    .info {
+      margin-top: 18px;
+      padding: 14px;
+
+      border-radius: 12px;
+      background: #121216;
+      border: 1px solid #25252b;
+
+      color: #8f8f98;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .telemetry {
+      margin-top: 10px;
+
+      color: #777;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+  </style>
 </head>
 
 <body>
 
 <main class="app">
 
-<h1>CAMVIEW</h1>
+  <h1>CAMVIEW</h1>
 
-<div class="video">
+  <div class="video-box">
 
-  <video
-    id="remote"
-    autoplay
-    playsinline>
-  </video>
+    <video
+      id="remoteVideo"
+      autoplay
+      playsinline>
+    </video>
 
-  <span
-    id="msg"
-    class="msg">
-    接続待機中
-  </span>
-
-</div>
-
-<div
-  id="status"
-  class="status">
-  サーバーに接続しています…
-</div>
-
-<div class="buttons">
-
-  <button id="camera">
-    カメラを開始
-  </button>
-
-  <button id="viewer">
-    閲覧する
-  </button>
-
-  <button
-    id="settings"
-    class="secondary">
-    設定
-  </button>
-
-</div>
-
-<div
-  id="cameraControls"
-  class="sub hidden">
-
-  <button
-    id="rear"
-    class="secondary">
-    外カメラ
-  </button>
-
-  <button
-    id="front"
-    class="secondary">
-    内カメラ
-  </button>
-
-  <button
-    id="talk"
-    class="talk">
-    押している間だけ話す
-  </button>
-
-</div>
-
-<div
-  id="panel"
-  class="panel hidden">
-
-  <b>映像設定</b>
-
-  <div class="row">
-
-    画質
-
-    <select id="quality">
-
-      <option value="auto">
-        自動
-      </option>
-
-      <option value="480">
-        480p
-      </option>
-
-      <option value="720">
-        720p
-      </option>
-
-      <option value="1080">
-        1080p
-      </option>
-
-    </select>
+    <span id="message">
+      接続待機中
+    </span>
 
   </div>
 
-  <div class="row">
+  <div
+    id="status"
+    class="status">
+    サーバーに接続しています…
+  </div>
 
-    FPS
+  <div class="buttons">
 
-    <select id="fps">
+    <button id="cameraButton">
+      カメラを開始
+    </button>
 
-      <option value="auto">
-        自動
-      </option>
-
-      <option value="15">
-        15 FPS
-      </option>
-
-      <option value="30">
-        30 FPS
-      </option>
-
-      <option value="60">
-        60 FPS
-      </option>
-
-    </select>
+    <button id="viewerButton">
+      閲覧する
+    </button>
 
   </div>
 
-  <div class="row">
-    初期状態は自動。通信状況に合わせて最大1080p / 60FPSまで自動調整します。
+
+  <div
+    id="cameraButtons"
+    class="camera-buttons">
+
+    <button
+      id="rearButton"
+      class="dark">
+      外カメラ
+    </button>
+
+    <button
+      id="frontButton"
+      class="dark">
+      内カメラ
+    </button>
+
   </div>
 
-</div>
 
-<div
-  id="telemetry"
-  class="telemetry">
-</div>
+  <div
+    id="talkArea"
+    class="talk-area">
+
+    <button
+      id="talkButton"
+      class="talk">
+      押して話す
+    </button>
+
+  </div>
+
+
+  <div
+    id="qualityArea"
+    class="quality-area">
+
+    <button
+      id="autoButton"
+      class="dark">
+      自動画質
+    </button>
+
+    <button
+      id="quality480"
+      class="dark">
+      480p
+    </button>
+
+    <button
+      id="quality720"
+      class="dark">
+      720p
+    </button>
+
+    <button
+      id="quality1080"
+      class="dark">
+      1080p
+    </button>
+
+  </div>
+
+
+  <div class="info">
+    CAMVIEW はWebRTCを使用して
+    端末間で映像・音声を通信します。
+    通信が一時的に切れた場合は自動復旧を試みます。
+  </div>
+
+  <div
+    id="telemetry"
+    class="telemetry">
+  </div>
 
 </main>
+
 
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+
 "use strict";
 
+
+/* =====================================================
+   基本設定
+===================================================== */
+
 const room = "camview-main";
+
 
 const socket = io({
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000
+  reconnectionDelayMax: 5000,
+  timeout: 10000
 });
 
-const remote =
-  document.getElementById("remote");
 
-const msg =
-  document.getElementById("msg");
+const remoteVideo =
+  document.getElementById("remoteVideo");
+
+const message =
+  document.getElementById("message");
 
 const status =
   document.getElementById("status");
 
-const controls =
-  document.getElementById("cameraControls");
-
-const talk =
-  document.getElementById("talk");
-
-const panel =
-  document.getElementById("panel");
-
 const telemetry =
   document.getElementById("telemetry");
 
-const qsel =
-  document.getElementById("quality");
+const cameraButtons =
+  document.getElementById("cameraButtons");
 
-const fsel =
-  document.getElementById("fps");
+const talkArea =
+  document.getElementById("talkArea");
 
+const qualityArea =
+  document.getElementById("qualityArea");
+
+const talkButton =
+  document.getElementById("talkButton");
+
+
+/* =====================================================
+   状態
+===================================================== */
 
 let peer = null;
 
-let local = null;
+let localStream = null;
 
-let mic = null;
+let viewerMicStream = null;
 
-let micTrack = null;
+let viewerMicTrack = null;
 
-let role = null;
+let isCamera = false;
 
-let facing = "environment";
+let isViewer = false;
 
-let turn = null;
+let currentFacingMode = "environment";
 
-let recovery = null;
+let currentDeviceId = null;
 
-let statsTimer = null;
+let iceQueue = [];
 
-let last = null;
+let reconnecting = false;
 
-let lastChange = 0;
+let recoveryTimer = null;
+
+let recoveryGeneration = 0;
+
+let offerInProgress = false;
+
+let lastOfferTime = 0;
+
+let autoQuality = true;
+
+let currentQuality = "720";
+
+let lastQualityChange = 0;
 
 let goodSamples = 0;
 
-let autoIndex = 2;
+let statsTimer = null;
 
-let ice = [];
+let lastBytesSent = 0;
 
+let lastStatsTime = 0;
 
-const profiles = [
+let talkAudio = null;
 
-  ["480",15],
-
-  ["720",30],
-
-  ["1080",30],
-
-  ["1080",60]
-
-];
+let started = false;
 
 
-function setStatus(text){
+/* =====================================================
+   Socket接続
+===================================================== */
 
-  status.textContent = text;
+socket.on("connect", async () => {
 
-}
+  console.log(
+    "[Socket] connected",
+    socket.id
+  );
+
+  status.textContent =
+    "サーバーに接続しました";
 
 
-/* =====================================
-   TURN設定
-===================================== */
+  /*
+   * すでにカメラ/Viewerとして
+   * 動作中の場合だけ再入室する。
+   */
 
-async function turnConfig(){
+  if (!started) {
+    return;
+  }
 
-  try{
 
-    const r =
-      await fetch(
-        "/api/turn-config",
-        {cache:"no-store"}
-      );
+  socket.emit(
+    "join",
+    room
+  );
 
-    if(!r.ok)
-      throw new Error();
 
-    turn =
-      await r.json();
+  /*
+   * Socket.IOの再接続直後に
+   * すぐOfferを乱発しない。
+   */
 
-  }catch(e){
+  await wait(1000);
 
-    console.warn(
-      "TURN config unavailable"
+
+  if (
+    isViewer &&
+    peer &&
+    peer.connectionState !==
+      "connected"
+  ) {
+
+    socket.emit(
+      "request-offer",
+      { room }
     );
 
-    turn = {
-
-      iceServers:[
-
-        {
-          urls:
-            "stun:stun.l.google.com:19302"
-        }
-
-      ]
-
-    };
-
   }
 
-  return turn;
+});
+
+
+socket.on("disconnect", () => {
+
+  console.log(
+    "[Socket] disconnected"
+  );
+
+  status.textContent =
+    "サーバー再接続中…";
+
+});
+
+
+socket.on("connect_error", error => {
+
+  console.warn(
+    "[Socket] connection error",
+    error
+  );
+
+  status.textContent =
+    "サーバーへ再接続しています…";
+
+});
+
+
+/* =====================================================
+   TURN
+===================================================== */
+
+async function getIceServers() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/turn-config",
+        {
+          cache: "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+      throw new Error(
+        "TURN unavailable"
+      );
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !data ||
+      !Array.isArray(
+        data.iceServers
+      )
+    ) {
+
+      throw new Error(
+        "Invalid TURN config"
+      );
+
+    }
+
+
+    return data.iceServers;
+
+  } catch (error) {
+
+    console.warn(
+      "[TURN] fallback to STUN",
+      error
+    );
+
+
+    return [
+      {
+        urls:
+          "stun:stun.l.google.com:19302"
+      }
+    ];
+
+  }
 
 }
 
 
-/* =====================================
+/* =====================================================
    Peer作成
-===================================== */
+===================================================== */
 
-async function makePeer(){
+async function createPeer() {
 
-  if(peer){
+  /*
+   * 既存Peerを完全に閉じる。
+   * ただし、この関数は
+   * 「本当に再接続が必要な時」だけ呼ぶ。
+   */
 
-    try{
+  if (peer) {
+
+    try {
+      peer.ontrack = null;
+      peer.onicecandidate = null;
+      peer.onconnectionstatechange = null;
+      peer.oniceconnectionstatechange = null;
       peer.close();
-    }catch(e){}
+    } catch {}
 
   }
 
-  const config =
-    turn ||
-    await turnConfig();
 
-  peer =
+  peer = null;
+
+  /*
+   * 古いPeerのICEを持ち越さない。
+   */
+
+  iceQueue = [];
+
+  const iceServers =
+    await getIceServers();
+
+
+  const newPeer =
     new RTCPeerConnection({
 
-      iceServers:
-        config.iceServers || config,
+      iceServers,
 
       bundlePolicy:
         "max-bundle",
@@ -425,167 +561,302 @@ async function makePeer(){
       rtcpMuxPolicy:
         "require",
 
+      /*
+       * 大きすぎるICE先行生成は
+       * 環境によって不安定になることがあるので
+       * 0にして必要な時に生成する。
+       */
+
       iceCandidatePoolSize:
-        10
+        0
 
     });
 
 
-  ice = [];
+  peer = newPeer;
 
 
-  peer.onicecandidate =
+  newPeer.onicecandidate =
     event => {
 
-      if(event.candidate){
-
-        socket.emit(
-          "ice-candidate",
-          {
-            room,
-            candidate:
-              event.candidate
-          }
-        );
-
+      if (
+        !event.candidate ||
+        peer !== newPeer
+      ) {
+        return;
       }
+
+
+      socket.emit(
+        "ice-candidate",
+        {
+          room,
+          candidate:
+            event.candidate
+        }
+      );
 
     };
 
 
-  peer.ontrack =
+  newPeer.ontrack =
     event => {
 
-      if(
+      if (
+        peer !== newPeer
+      ) {
+        return;
+      }
+
+
+      if (!event.streams[0]) {
+        return;
+      }
+
+
+      const stream =
+        event.streams[0];
+
+
+      if (
         event.track.kind ===
-        "video" &&
-        event.streams[0]
-      ){
+        "video"
+      ) {
 
-        remote.srcObject =
-          event.streams[0];
+        remoteVideo.srcObject =
+          stream;
 
-        remote.style.display =
+        remoteVideo.style.display =
           "block";
 
-        msg.style.display =
+        message.style.display =
           "none";
 
-        remote.play()
-          .catch(()=>{});
 
-        setStatus(
-          "映像・音声を受信しています"
-        );
+        remoteVideo
+          .play()
+          .catch(() => {});
 
       }
 
 
-      if(
+      /*
+       * Viewer → Camera
+       * トーク音声
+       */
+
+      if (
         event.track.kind ===
         "audio" &&
-        event.streams[0]
-      ){
+        isCamera
+      ) {
 
-        let audio =
-          document.getElementById(
-            "talkAudio"
-          );
+        if (!talkAudio) {
 
-        if(!audio){
-
-          audio =
+          talkAudio =
             document.createElement(
               "audio"
             );
 
-          audio.id =
-            "talkAudio";
-
-          audio.autoplay =
+          talkAudio.autoplay =
             true;
 
-          audio.playsInline =
+          talkAudio.playsInline =
             true;
+
+          talkAudio.style.display =
+            "none";
 
           document.body.appendChild(
-            audio
+            talkAudio
           );
 
         }
 
-        audio.srcObject =
-          event.streams[0];
 
-        audio.play()
-          .catch(()=>{});
+        talkAudio.srcObject =
+          new MediaStream([
+            event.track
+          ]);
+
+
+        talkAudio
+          .play()
+          .catch(() => {});
 
       }
 
 
-      event.track.onended =
-        () => {
-
-          recover(
-            "トラック終了"
-          );
-
-        };
+      status.textContent =
+        "映像・音声を受信しています";
 
     };
 
 
-  peer.onconnectionstatechange =
+  newPeer.onconnectionstatechange =
     () => {
 
-      if(!peer)
+      if (
+        peer !== newPeer
+      ) {
         return;
+      }
+
 
       const state =
-        peer.connectionState;
+        newPeer.connectionState;
 
-      if(state === "connected"){
 
-        setStatus(
-          role === "camera"
-            ? "カメラとして接続しました"
-            : "接続しました"
-        );
+      console.log(
+        "[WebRTC] connectionState:",
+        state
+      );
+
+
+      if (
+        state === "connected"
+      ) {
+
+        /*
+         * 接続成功したら、
+         * 予約中の復旧を完全にキャンセル。
+         */
+
+        cancelRecovery();
+
+
+        reconnecting =
+          false;
+
+        status.textContent =
+          "接続しました";
+
+        return;
 
       }
 
-      if(state === "connecting"){
 
-        setStatus(
-          "接続しています…"
+      if (
+        state === "disconnected"
+      ) {
+
+        /*
+         * disconnectedは
+         * 一時的な回線揺れでも発生する。
+         *
+         * ここではPeerを作り直さない。
+         */
+
+        status.textContent =
+          "接続を確認しています…";
+
+        scheduleRecovery(
+          6000
         );
+
+        return;
 
       }
 
-      if(
-        state === "disconnected" ||
+
+      if (
         state === "failed"
-      ){
+      ) {
 
-        recover(
-          "WebRTC " + state
+        status.textContent =
+          "接続が切れました。復旧しています…";
+
+        scheduleRecovery(
+          1500
         );
+
+        return;
+
+      }
+
+
+      if (
+        state === "closed"
+      ) {
+
+        /*
+         * 自分でcloseした場合も
+         * ここに来るので、
+         * reconnecting中なら何もしない。
+         */
+
+        if (!reconnecting) {
+
+          scheduleRecovery(
+            1500
+          );
+
+        }
 
       }
 
     };
 
 
-  peer.oniceconnectionstatechange =
+  newPeer.oniceconnectionstatechange =
     () => {
 
-      if(
-        peer.iceConnectionState ===
-        "failed"
-      ){
+      if (
+        peer !== newPeer
+      ) {
+        return;
+      }
 
-        recover(
-          "ICE failed"
+
+      const state =
+        newPeer.iceConnectionState;
+
+
+      console.log(
+        "[WebRTC] ICE:",
+        state
+      );
+
+
+      if (
+        state === "connected" ||
+        state === "completed"
+      ) {
+
+        cancelRecovery();
+
+        status.textContent =
+          "接続しました";
+
+        return;
+
+      }
+
+
+      if (
+        state === "disconnected"
+      ) {
+
+        /*
+         * ICE disconnectedも
+         * 即再接続しない。
+         */
+
+        scheduleRecovery(
+          6000
+        );
+
+        return;
+
+      }
+
+
+      if (
+        state === "failed"
+      ) {
+
+        scheduleRecovery(
+          1500
         );
 
       }
@@ -593,438 +864,937 @@ async function makePeer(){
     };
 
 
-  if(
-    role === "camera" &&
-    local
-  ){
-
-    local
-      .getTracks()
-      .forEach(
-        track =>
-          peer.addTrack(
-            track,
-            local
-          )
-      );
-
-  }
-
-
-  if(
-    role === "viewer" &&
-    mic
-  ){
-
-    mic
-      .getTracks()
-      .forEach(
-        track =>
-          peer.addTrack(
-            track,
-            mic
-          )
-      );
-
-  }
+  return newPeer;
 
 }
 
 
-/* =====================================
-   ICE
-===================================== */
+/* =====================================================
+   カメラ取得
+===================================================== */
 
-async function flushIce(){
+async function getCameraTrack(
+  facingMode
+) {
 
-  if(
-    !peer ||
-    !peer.remoteDescription
-  )
-    return;
+  /*
+   * まずfacingModeを指定して取得。
+   * Androidではこれが最も安定する。
+   */
 
-  for(
-    const candidate
-    of ice.splice(0)
-  ){
-
-    try{
-
-      await peer.addIceCandidate(
-        candidate
-      );
-
-    }catch(e){}
-
-  }
-
-}
-
-
-/* =====================================
-   カメラ開始
-===================================== */
-
-async function cameraStart(
-  face = facing,
-  quality = qsel.value,
-  fps = fsel.value
-){
-
-  if(role !== "camera")
-    return;
-
-
-  const profile =
-    profiles[autoIndex];
-
-
-  const q =
-    quality === "auto"
-      ? profile[0]
-      : quality;
-
-
-  const f =
-    fps === "auto"
-      ? profile[1]
-      : Number(fps);
-
-
-  const height =
-    q === "1080"
-      ? 1080
-      : q === "720"
-        ? 720
-        : 480;
-
-
-  const width =
-    q === "1080"
-      ? 1920
-      : q === "720"
-        ? 1280
-        : 854;
-
-
-  try{
+  try {
 
     const stream =
       await navigator
         .mediaDevices
         .getUserMedia({
 
-          video:{
+          video: {
 
-            width:{
-              ideal:width,
-              max:width
+            facingMode: {
+              exact:
+                facingMode
             },
 
-            height:{
-              ideal:height,
-              max:height
+            width: {
+              ideal: 1280,
+              max: 1280
             },
 
-            frameRate:{
-              ideal:f,
-              max:f
+            height: {
+              ideal: 720,
+              max: 720
             },
 
-            facingMode:face
+            frameRate: {
+              ideal: 30,
+              max: 30
+            }
 
           },
 
-          audio:{
-
-            echoCancellation:true,
-
-            noiseSuppression:true,
-
-            autoGainControl:true
-
-          }
+          audio: false
 
         });
 
 
-    const videoTrack =
-      stream
-        .getVideoTracks()[0];
+    return stream
+      .getVideoTracks()[0];
 
-    const audioTrack =
-      stream
-        .getAudioTracks()[0];
+  } catch (error) {
 
-
-    if(peer){
-
-      const videoSender =
-        peer
-          .getSenders()
-          .find(
-            s =>
-              s.track?.kind ===
-              "video"
-          );
-
-
-      const audioSender =
-        peer
-          .getSenders()
-          .find(
-            s =>
-              s.track?.kind ===
-              "audio"
-          );
-
-
-      if(videoSender){
-
-        await videoSender
-          .replaceTrack(
-            videoTrack
-          );
-
-      }else{
-
-        peer.addTrack(
-          videoTrack,
-          stream
-        );
-
-      }
-
-
-      if(audioSender){
-
-        await audioSender
-          .replaceTrack(
-            audioTrack
-          );
-
-      }else{
-
-        peer.addTrack(
-          audioTrack,
-          stream
-        );
-
-      }
-
-    }
-
-
-    if(local){
-
-      local
-        .getTracks()
-        .forEach(
-          track => {
-
-            try{
-              track.stop();
-            }catch(e){}
-
-          }
-        );
-
-    }
-
-
-    local =
-      stream;
-
-    facing =
-      face;
-
-
-    const actual =
-      videoTrack.getSettings();
-
-
-    setStatus(
-      `カメラ接続中 — ${
-        actual.width || width
-      }×${
-        actual.height || height
-      } / ${
-        actual.frameRate || f
-      }FPS`
-    );
-
-
-  }catch(error){
-
-    /*
-      60FPS非対応端末なら
-      30FPSへ自動フォールバック
-    */
-
-    if(f === 60){
-
-      try{
-
-        const fallback =
-          await navigator
-            .mediaDevices
-            .getUserMedia({
-
-              video:{
-
-                width:{
-                  ideal:width,
-                  max:width
-                },
-
-                height:{
-                  ideal:height,
-                  max:height
-                },
-
-                frameRate:{
-                  ideal:30,
-                  max:30
-                },
-
-                facingMode:face
-
-              },
-
-              audio:true
-
-            });
-
-
-        const videoTrack =
-          fallback
-            .getVideoTracks()[0];
-
-
-        const sender =
-          peer
-            ?.getSenders()
-            .find(
-              s =>
-                s.track?.kind ===
-                "video"
-            );
-
-
-        if(sender){
-
-          await sender
-            .replaceTrack(
-              videoTrack
-            );
-
-        }else if(peer){
-
-          peer.addTrack(
-            videoTrack,
-            fallback
-          );
-
-        }
-
-
-        if(local){
-
-          local
-            .getVideoTracks()
-            .forEach(
-              track =>
-                track.stop()
-            );
-
-        }
-
-
-        local =
-          fallback;
-
-
-        setStatus(
-          "60FPS非対応のため30FPSで接続しました"
-        );
-
-        return;
-
-      }catch(e){}
-
-    }
-
-
-    setStatus(
-      "カメラを使用できません: " +
-      error.name
+    console.warn(
+      "[Camera] exact facingMode failed",
+      error
     );
 
   }
 
-}
 
+  /*
+   * exactで取れない端末用。
+   */
 
-/* =====================================
-   閲覧側マイク
-===================================== */
+  try {
 
-async function viewerMic(){
-
-  try{
-
-    mic =
+    const stream =
       await navigator
         .mediaDevices
         .getUserMedia({
 
-          audio:{
+          video: {
 
-            echoCancellation:true,
+            facingMode: {
+              ideal:
+                facingMode
+            },
 
-            noiseSuppression:true,
+            width: {
+              ideal: 1280,
+              max: 1280
+            },
 
-            autoGainControl:true
+            height: {
+              ideal: 720,
+              max: 720
+            },
 
-          }
+            frameRate: {
+              ideal: 30,
+              max: 30
+            }
+
+          },
+
+          audio: false
 
         });
 
 
-    micTrack =
-      mic.getAudioTracks()[0];
+    return stream
+      .getVideoTracks()[0];
 
+  } catch (error) {
 
-    micTrack.enabled =
-      false;
-
-
-  }catch(e){
-
-    setStatus(
-      "マイクは使用できません。映像は利用できます"
+    console.warn(
+      "[Camera] ideal facingMode failed",
+      error
     );
+
+  }
+
+
+  /*
+   * 最終フォールバック。
+   */
+
+  const stream =
+    await navigator
+      .mediaDevices
+      .getUserMedia({
+
+        video: {
+
+          width: {
+            ideal: 1280,
+            max: 1280
+          },
+
+          height: {
+            ideal: 720,
+            max: 720
+          },
+
+          frameRate: {
+            ideal: 30,
+            max: 30
+          }
+
+        },
+
+        audio: false
+
+      });
+
+
+  return stream
+    .getVideoTracks()[0];
+
+}
+
+
+/* =====================================================
+   カメラ開始・切替
+===================================================== */
+
+let cameraOperation = null;
+
+
+async function startCamera(
+  facingMode = "environment"
+) {
+
+  /*
+   * カメラ切替処理が同時に2つ走らないようにする。
+   */
+
+  if (cameraOperation) {
+
+    return cameraOperation;
+
+  }
+
+
+  cameraOperation =
+    (async () => {
+
+      status.textContent =
+        "カメラを起動しています…";
+
+
+      try {
+
+        const oldVideoTrack =
+          localStream
+            ?.getVideoTracks()[0];
+
+
+        const newVideoTrack =
+          await getCameraTrack(
+            facingMode
+          );
+
+
+        if (!newVideoTrack) {
+
+          throw new Error(
+            "カメラを取得できませんでした"
+          );
+
+        }
+
+
+        currentDeviceId =
+          newVideoTrack
+            .getSettings()
+            .deviceId ||
+          null;
+
+
+        currentFacingMode =
+          facingMode;
+
+
+        /*
+         * 重要：
+         *
+         * カメラ切替では
+         * PeerConnectionを作り直さない。
+         *
+         * 現在のSenderのTrackだけ交換する。
+         */
+
+        if (peer) {
+
+          const sender =
+            peer
+              .getSenders()
+              .find(
+                s =>
+                  s.track &&
+                  s.track.kind ===
+                  "video"
+              );
+
+
+          if (sender) {
+
+            await sender.replaceTrack(
+              newVideoTrack
+            );
+
+          } else {
+
+            if (localStream) {
+
+              peer.addTrack(
+                newVideoTrack,
+                localStream
+              );
+
+            }
+
+          }
+
+        }
+
+
+        /*
+         * 古い映像Trackを停止。
+         */
+
+        if (
+          oldVideoTrack &&
+          oldVideoTrack !==
+            newVideoTrack
+        ) {
+
+          try {
+            oldVideoTrack.stop();
+          } catch {}
+
+        }
+
+
+        const audioTrack =
+          localStream
+            ?.getAudioTracks()[0];
+
+
+        if (audioTrack) {
+
+          localStream =
+            new MediaStream([
+              newVideoTrack,
+              audioTrack
+            ]);
+
+        } else {
+
+          localStream =
+            new MediaStream([
+              newVideoTrack
+            ]);
+
+        }
+
+
+        attachTrackRecovery(
+          newVideoTrack
+        );
+
+
+        status.textContent =
+          facingMode ===
+          "environment"
+            ? "外カメラで動作中"
+            : "内カメラで動作中";
+
+
+        return true;
+
+      } catch (error) {
+
+        console.error(
+          "[Camera] error:",
+          error
+        );
+
+
+        status.textContent =
+          "カメラを取得できませんでした: "
+          + error.name;
+
+
+        return false;
+
+      }
+
+    })();
+
+
+  try {
+
+    return await cameraOperation;
+
+  } finally {
+
+    cameraOperation =
+      null;
 
   }
 
 }
 
 
-/* =====================================
-   Offer
-===================================== */
+/* =====================================================
+   カメラTrack監視
+===================================================== */
 
-async function offer(){
+const trackRecoveryLocks =
+  new WeakSet();
 
-  if(
-    role !== "camera" ||
-    !peer ||
-    !local
-  )
+
+function attachTrackRecovery(
+  track
+) {
+
+  if (!track) {
+    return;
+  }
+
+
+  /*
+   * 同じTrackに何度も
+   * listenerを付けない。
+   */
+
+  if (
+    trackRecoveryLocks.has(track)
+  ) {
+
     return;
 
+  }
 
-  try{
+
+  trackRecoveryLocks.add(track);
+
+
+  track.addEventListener(
+    "ended",
+    () => {
+
+      if (!isCamera) {
+        return;
+      }
+
+
+      /*
+       * 本当に終了した場合だけ復旧。
+       */
+
+      if (
+        track.readyState ===
+        "ended"
+      ) {
+
+        setTimeout(
+          () => {
+
+            if (
+              isCamera &&
+              localStream
+                ?.getVideoTracks()
+                .includes(track)
+            ) {
+
+              recoverCamera();
+
+            }
+
+          },
+          1500
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   カメラ復旧
+===================================================== */
+
+let cameraRecoveryRunning =
+  false;
+
+
+async function recoverCamera() {
+
+  if (
+    !isCamera ||
+    cameraRecoveryRunning
+  ) {
+
+    return;
+
+  }
+
+
+  cameraRecoveryRunning =
+    true;
+
+
+  try {
+
+    const currentTrack =
+      localStream
+        ?.getVideoTracks()[0];
+
+
+    if (
+      currentTrack &&
+      currentTrack.readyState !==
+        "ended"
+    ) {
+
+      /*
+       * muteしただけなら
+       * カメラを作り直さない。
+       */
+
+      return;
+
+    }
+
+
+    status.textContent =
+      "カメラを復旧しています…";
+
+
+    await startCamera(
+      currentFacingMode
+    );
+
+
+  } finally {
+
+    cameraRecoveryRunning =
+      false;
+
+  }
+
+}
+
+
+/* =====================================================
+   カメラ開始
+===================================================== */
+
+document
+  .getElementById(
+    "cameraButton"
+  )
+  .addEventListener(
+    "click",
+    async () => {
+
+      if (started) {
+        return;
+      }
+
+
+      isCamera = true;
+      isViewer = false;
+      started = true;
+
+
+      cameraButtons.style.display =
+        "flex";
+
+      qualityArea.style.display =
+        "flex";
+
+      talkArea.style.display =
+        "none";
+
+
+      try {
+
+        /*
+         * 最初のカメラ取得。
+         */
+
+        const videoStream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+
+              video: {
+
+                facingMode: {
+                  ideal:
+                    "environment"
+                },
+
+                width: {
+                  ideal: 1280,
+                  max: 1280
+                },
+
+                height: {
+                  ideal: 720,
+                  max: 720
+                },
+
+                frameRate: {
+                  ideal: 30,
+                  max: 30
+                }
+
+              },
+
+              audio: {
+
+                echoCancellation:
+                  true,
+
+                noiseSuppression:
+                  true,
+
+                autoGainControl:
+                  true
+
+              }
+
+            });
+
+
+        localStream =
+          videoStream;
+
+
+        const videoTrack =
+          localStream
+            .getVideoTracks()[0];
+
+
+        const audioTrack =
+          localStream
+            .getAudioTracks()[0];
+
+
+        if (videoTrack) {
+
+          currentDeviceId =
+            videoTrack
+              .getSettings()
+              .deviceId ||
+            null;
+
+          attachTrackRecovery(
+            videoTrack
+          );
+
+        }
+
+
+        if (audioTrack) {
+
+          attachTrackRecovery(
+            audioTrack
+          );
+
+        }
+
+
+        /*
+         * Peer作成。
+         */
+
+        await createPeer();
+
+
+        localStream
+          .getTracks()
+          .forEach(
+            track => {
+
+              peer.addTrack(
+                track,
+                localStream
+              );
+
+            }
+          );
+
+
+        socket.emit(
+          "join",
+          room
+        );
+
+
+        status.textContent =
+          "カメラとして待機中";
+
+
+        startAutoQuality();
+
+
+      } catch (error) {
+
+        console.error(
+          "[Camera start]",
+          error
+        );
+
+
+        started = false;
+        isCamera = false;
+
+
+        status.textContent =
+          "カメラ・マイクを使用できません: "
+          + error.name;
+
+      }
+
+    }
+  );
+
+
+/* =====================================================
+   Viewer開始
+===================================================== */
+
+document
+  .getElementById(
+    "viewerButton"
+  )
+  .addEventListener(
+    "click",
+    async () => {
+
+      if (started) {
+        return;
+      }
+
+
+      isViewer = true;
+      isCamera = false;
+      started = true;
+
+
+      cameraButtons.style.display =
+        "flex";
+
+      talkArea.style.display =
+        "flex";
+
+      qualityArea.style.display =
+        "none";
+
+
+      try {
+
+        viewerMicStream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+
+              audio: {
+
+                echoCancellation:
+                  true,
+
+                noiseSuppression:
+                  true,
+
+                autoGainControl:
+                  true
+
+              },
+
+              video: false
+
+            });
+
+
+        viewerMicTrack =
+          viewerMicStream
+            .getAudioTracks()[0];
+
+
+        viewerMicTrack.enabled =
+          false;
+
+
+        await createPeer();
+
+
+        peer.addTrack(
+          viewerMicTrack,
+          viewerMicStream
+        );
+
+
+        socket.emit(
+          "join",
+          room
+        );
+
+
+        status.textContent =
+          "カメラを探しています…";
+
+
+        await wait(500);
+
+
+        if (socket.connected) {
+
+          socket.emit(
+            "request-offer",
+            { room }
+          );
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "[Viewer start]",
+          error
+        );
+
+
+        started = false;
+        isViewer = false;
+
+
+        status.textContent =
+          "マイクを使用できません: "
+          + error.name;
+
+      }
+
+    }
+  );
+
+
+/* =====================================================
+   カメラ切替
+===================================================== */
+
+document
+  .getElementById(
+    "rearButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      socket.emit(
+        "switch-camera",
+        {
+          room,
+          camera:
+            "environment"
+        }
+      );
+
+
+      status.textContent =
+        "外カメラへ切り替えています…";
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "frontButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      socket.emit(
+        "switch-camera",
+        {
+          room,
+          camera:
+            "user"
+        }
+      );
+
+
+      status.textContent =
+        "内カメラへ切り替えています…";
+
+    }
+  );
+
+
+socket.on(
+  "switch-camera",
+  async data => {
+
+    if (!isCamera) {
+      return;
+    }
+
+
+    await startCamera(
+      data.camera
+    );
+
+  }
+);
+
+
+/* =====================================================
+   Offer
+===================================================== */
+
+async function makeOffer() {
+
+  if (
+    !isCamera ||
+    !peer ||
+    !localStream ||
+    reconnecting
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * Offer連打防止。
+   */
+
+  if (offerInProgress) {
+    return;
+  }
+
+
+  /*
+   * 直前のOfferから短すぎる場合は
+   * もう一度送らない。
+   */
+
+  if (
+    Date.now() -
+    lastOfferTime <
+    1500
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * stable以外からOfferを作らない。
+   */
+
+  if (
+    peer.signalingState !==
+    "stable"
+  ) {
+
+    console.log(
+      "[WebRTC] skip offer, signalingState:",
+      peer.signalingState
+    );
+
+    return;
+
+  }
+
+
+  offerInProgress =
+    true;
+
+
+  try {
 
     const offer =
       await peer.createOffer({
@@ -1036,6 +1806,17 @@ async function offer(){
           true
 
       });
+
+
+    if (
+      !peer ||
+      peer.signalingState !==
+        "stable"
+    ) {
+
+      return;
+
+    }
 
 
     await peer.setLocalDescription(
@@ -1051,173 +1832,143 @@ async function offer(){
       }
     );
 
-  }catch(e){
 
-    console.error(e);
+    lastOfferTime =
+      Date.now();
+
+
+  } catch (error) {
+
+    console.error(
+      "[Offer]",
+      error
+    );
+
+  } finally {
+
+    offerInProgress =
+      false;
 
   }
 
 }
 
 
-/* =====================================
-   自動復旧
-===================================== */
+/* =====================================================
+   Offer要求
+===================================================== */
 
-function recover(reason){
+socket.on(
+  "request-offer",
+  async () => {
 
-  if(
-    recovery ||
-    !role
-  )
-    return;
+    if (
+      isCamera &&
+      peer &&
+      peer.connectionState !==
+        "connected"
+    ) {
 
+      await makeOffer();
 
-  recovery =
-    setTimeout(
-      async () => {
+    }
 
-        recovery =
-          null;
-
-        try{
-
-          await turnConfig();
-
-          await makePeer();
+  }
+);
 
 
-          if(
-            role === "camera"
-          ){
+/* =====================================================
+   Peer入室
+===================================================== */
 
-            await cameraStart();
+socket.on(
+  "peer-joined",
+  async () => {
 
-          }
-
-
-          socket.emit(
-            "join",
-            room
-          );
+    if (!isCamera) {
+      return;
+    }
 
 
-        }catch(e){
+    /*
+     * 入室直後の瞬間的なOffer競合を避ける。
+     */
 
-          recover(
-            "retry"
+    await wait(700);
+
+
+    if (
+      peer &&
+      peer.connectionState !==
+        "connected"
+    ) {
+
+      await makeOffer();
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   Offer受信
+===================================================== */
+
+socket.on(
+  "offer",
+  async offer => {
+
+    if (!isViewer) {
+      return;
+    }
+
+
+    try {
+
+      if (!peer) {
+
+        await createPeer();
+
+
+        if (
+          viewerMicTrack &&
+          viewerMicStream
+        ) {
+
+          peer.addTrack(
+            viewerMicTrack,
+            viewerMicStream
           );
 
         }
 
-      },
-      1200
-    );
-
-}
+      }
 
 
-/* =====================================
-   Socket
-===================================== */
+      /*
+       * ViewerはOfferを受け取る側。
+       */
 
-socket.on(
-  "connect",
-  () => {
+      if (
+        peer.signalingState !==
+        "stable"
+      ) {
 
-    if(role){
+        console.warn(
+          "[Offer] ignore because signalingState:",
+          peer.signalingState
+        );
 
-      socket.emit(
-        "join",
-        room
-      );
-
-
-      setStatus(
-        role === "camera"
-          ? "サーバーに接続しました。待機中…"
-          : "カメラを探しています…"
-      );
-
-    }else{
-
-      setStatus(
-        "サーバーに接続しました"
-      );
-
-    }
-
-  }
-);
-
-
-socket.on(
-  "disconnect",
-  () => {
-
-    if(role){
-
-      setStatus(
-        "サーバー切断。自動復旧中…"
-      );
-
-    }
-
-  }
-);
-
-
-socket.on(
-  "peer-joined",
-  () => {
-
-    if(
-      role === "camera"
-    ){
-
-      offer();
-
-    }
-
-  }
-);
-
-
-socket.on(
-  "request-offer",
-  () => {
-
-    if(
-      role === "camera"
-    ){
-
-      offer();
-
-    }
-
-  }
-);
-
-
-/* =====================================
-   Offer受信
-===================================== */
-
-socket.on(
-  "offer",
-  async incomingOffer => {
-
-    try{
-
-      if(!peer){
-
-        await makePeer();
+        return;
 
       }
 
 
       await peer.setRemoteDescription(
-        incomingOffer
+        new RTCSessionDescription(
+          offer
+        )
       );
 
 
@@ -1241,11 +1992,21 @@ socket.on(
         }
       );
 
-    }catch(e){
 
-      recover(
-        "offer"
+      status.textContent =
+        "接続処理中…";
+
+
+    } catch (error) {
+
+      console.error(
+        "[Offer receive]",
+        error
       );
+
+
+      status.textContent =
+        "接続処理でエラーが発生しました";
 
     }
 
@@ -1253,32 +2014,61 @@ socket.on(
 );
 
 
-/* =====================================
-   Answer受信
-===================================== */
+/* =====================================================
+   Answer
+===================================================== */
 
 socket.on(
   "answer",
   async answer => {
 
-    try{
+    if (!isCamera) {
+      return;
+    }
 
-      if(!peer)
+
+    try {
+
+      if (!peer) {
+        return;
+      }
+
+
+      /*
+       * Camera側がOfferを送って
+       * ViewerからAnswerを待っている状態。
+       */
+
+      if (
+        peer.signalingState !==
+        "have-local-offer"
+      ) {
+
+        console.warn(
+          "[Answer] unexpected signalingState:",
+          peer.signalingState
+        );
+
         return;
 
+      }
 
-      await peer
-        .setRemoteDescription(
+
+      await peer.setRemoteDescription(
+        new RTCSessionDescription(
           answer
-        );
+        )
+      );
 
 
       await flushIce();
 
-    }catch(e){
 
-      recover(
-        "answer"
+    } catch (error) {
+
+      console.error(
+        "[Answer]",
+        error
       );
 
     }
@@ -1287,20 +2077,22 @@ socket.on(
 );
 
 
-/* =====================================
-   ICE受信
-===================================== */
+/* =====================================================
+   ICE
+===================================================== */
 
 socket.on(
   "ice-candidate",
   async candidate => {
 
-    if(
-      !peer ||
-      !peer.remoteDescription
-    ){
+    if (!candidate) {
+      return;
+    }
 
-      ice.push(
+
+    if (!peer) {
+
+      iceQueue.push(
         candidate
       );
 
@@ -1309,655 +2101,388 @@ socket.on(
     }
 
 
-    try{
+    if (
+      peer.remoteDescription &&
+      peer.remoteDescription.type
+    ) {
+
+      try {
+
+        await peer.addIceCandidate(
+          candidate
+        );
+
+      } catch (error) {
+
+        console.warn(
+          "[ICE]",
+          error
+        );
+
+      }
+
+    } else {
+
+      iceQueue.push(
+        candidate
+      );
+
+    }
+
+  }
+);
+
+
+async function flushIce() {
+
+  if (!peer) {
+    return;
+  }
+
+
+  if (
+    !peer.remoteDescription ||
+    !peer.remoteDescription.type
+  ) {
+
+    return;
+
+  }
+
+
+  const queue =
+    [...iceQueue];
+
+
+  iceQueue = [];
+
+
+  for (
+    const candidate
+    of queue
+  ) {
+
+    try {
 
       await peer.addIceCandidate(
         candidate
       );
 
-    }catch(e){}
-
-  }
-);
-
-
-/* =====================================
-   カメラ切替
-===================================== */
-
-socket.on(
-  "switch-camera",
-  data => {
-
-    if(
-      role !== "camera"
-    )
-      return;
-
-
-    cameraStart(
-      data.camera === "user"
-        ? "user"
-        : "environment"
-    );
-
-  }
-);
-
-
-/* =====================================
-   画質・FPS変更
-===================================== */
-
-socket.on(
-  "change-quality",
-  async data => {
-
-    if(
-      role !== "camera" ||
-      !local
-    )
-      return;
-
-
-    const track =
-      local
-        .getVideoTracks()[0];
-
-
-    if(!track)
-      return;
-
-
-    const profile =
-      profiles[autoIndex];
-
-
-    const q =
-      data.quality === "auto"
-        ? profile[0]
-        : data.quality;
-
-
-    const f =
-      data.fps === "auto"
-        ? profile[1]
-        : Number(data.fps);
-
-
-    const height =
-      q === "1080"
-        ? 1080
-        : q === "720"
-          ? 720
-          : 480;
-
-
-    const width =
-      q === "1080"
-        ? 1920
-        : q === "720"
-          ? 1280
-          : 854;
-
-
-    try{
-
-      await track.applyConstraints({
-
-        width:{
-          ideal:width,
-          max:width
-        },
-
-        height:{
-          ideal:height,
-          max:height
-        },
-
-        frameRate:{
-          ideal:f,
-          max:f
-        }
-
-      });
-
-    }catch(e){
-
-      console.warn(e);
-
-    }
-
-  }
-);
-
-
-/* =====================================
-   ボタン
-===================================== */
-
-document
-  .getElementById("camera")
-  .onclick =
-  async () => {
-
-    if(role)
-      return;
-
-
-    role =
-      "camera";
-
-
-    controls
-      .classList
-      .remove("hidden");
-
-
-    talk.style.display =
-      "none";
-
-
-    await turnConfig();
-
-    await makePeer();
-
-    await cameraStart();
-
-    socket.emit(
-      "join",
-      room
-    );
-
-  };
-
-
-document
-  .getElementById("viewer")
-  .onclick =
-  async () => {
-
-    if(role)
-      return;
-
-
-    role =
-      "viewer";
-
-
-    controls
-      .classList
-      .remove("hidden");
-
-
-    talk.style.display =
-      "block";
-
-
-    await turnConfig();
-
-    await viewerMic();
-
-    await makePeer();
-
-
-    socket.emit(
-      "join",
-      room
-    );
-
-
-    startStats();
-
-
-    setStatus(
-      "カメラを探しています…"
-    );
-
-  };
-
-
-document
-  .getElementById("rear")
-  .onclick =
-  () => {
-
-    if(
-      role === "viewer"
-    ){
-
-      socket.emit(
-        "switch-camera",
-        {
-          room,
-          camera:"environment"
-        }
+    } catch (error) {
+
+      console.warn(
+        "[ICE queue]",
+        error
       );
 
     }
 
-  };
+  }
+
+}
 
 
-document
-  .getElementById("front")
-  .onclick =
-  () => {
-
-    if(
-      role === "viewer"
-    ){
-
-      socket.emit(
-        "switch-camera",
-        {
-          room,
-          camera:"user"
-        }
-      );
-
-    }
-
-  };
-
-
-/* =====================================
+/* =====================================================
    トーク
-===================================== */
+===================================================== */
 
-function talkOn(value){
+function talkStart(event) {
 
-  if(micTrack){
+  if (
+    !isViewer ||
+    !viewerMicTrack
+  ) {
 
-    micTrack.enabled =
-      value;
-
-  }
-
-
-  talk.classList
-    .toggle(
-      "talking",
-      value
-    );
-
-
-  talk.textContent =
-    value
-      ? "話しています…"
-      : "押している間だけ話す";
-
-}
-
-
-talk.onpointerdown =
-  event => {
-
-    event.preventDefault();
-
-    talkOn(true);
-
-  };
-
-
-[
-  "pointerup",
-  "pointercancel",
-  "pointerleave"
-]
-.forEach(
-  type => {
-
-    talk.addEventListener(
-      type,
-      event => {
-
-        event.preventDefault();
-
-        talkOn(false);
-
-      }
-    );
-
-  }
-);
-
-
-window.onblur =
-  () => talkOn(false);
-
-
-/* =====================================
-   設定
-===================================== */
-
-document
-  .getElementById("settings")
-  .onclick =
-  () => {
-
-    panel
-      .classList
-      .toggle("hidden");
-
-  };
-
-
-async function settingsChanged(){
-
-  const quality =
-    qsel.value;
-
-  const fps =
-    fsel.value;
-
-
-  /*
-    自動なら何も考えなくてOK
-  */
-
-  if(
-    role === "camera"
-  ){
-
-    await cameraStart(
-      facing,
-      quality,
-      fps
-    );
-
-  }
-
-
-  if(
-    role === "viewer"
-  ){
-
-    socket.emit(
-      "change-quality",
-      {
-        room,
-        quality,
-        fps
-      }
-    );
-
-  }
-
-}
-
-
-qsel.onchange =
-  settingsChanged;
-
-
-fsel.onchange =
-  settingsChanged;
-
-
-/* =====================================
-   自動通信調整
-===================================== */
-
-async function autoStats(){
-
-  if(
-    role !== "viewer" ||
-    !peer ||
-    peer.connectionState !==
-      "connected" ||
-    qsel.value !== "auto" ||
-    fsel.value !== "auto"
-  )
     return;
 
-
-  const now =
-    performance.now();
+  }
 
 
-  const stats =
-    await peer.getStats();
+  event.preventDefault();
 
 
-  let inbound =
-    null;
-
-  let rtt =
-    0;
+  viewerMicTrack.enabled =
+    true;
 
 
-  stats.forEach(
-    report => {
-
-      if(
-        report.type ===
-          "inbound-rtp" &&
-        report.kind ===
-          "video"
-      ){
-
-        inbound =
-          report;
-
-      }
-
-
-      if(
-        report.type ===
-          "candidate-pair" &&
-        report.state ===
-          "succeeded" &&
-        typeof report.currentRoundTripTime ===
-          "number"
-      ){
-
-        rtt =
-          report.currentRoundTripTime *
-          1000;
-
-      }
-
-    }
+  talkButton.classList.add(
+    "active"
   );
 
 
-  if(!inbound)
-    return;
-
-
-  const bytes =
-    inbound.bytesReceived || 0;
-
-  const packets =
-    inbound.packetsReceived || 0;
-
-  const lost =
-    inbound.packetsLost || 0;
-
-  const dropped =
-    inbound.framesDropped || 0;
-
-
-  if(last){
-
-    const dt =
-      Math.max(
-        0.1,
-        (now - last.time) /
-        1000
-      );
-
-
-    const bitrate =
-      (bytes - last.bytes) *
-      8 /
-      dt /
-      1000000;
-
-
-    const received =
-      Math.max(
-        0,
-        packets - last.packets
-      );
-
-
-    const lostDelta =
-      Math.max(
-        0,
-        lost - last.lost
-      );
-
-
-    const loss =
-      (
-        lostDelta /
-        Math.max(
-          1,
-          received + lostDelta
-        )
-      ) * 100;
-
-
-    const droppedDelta =
-      Math.max(
-        0,
-        dropped - last.dropped
-      );
-
-
-    telemetry.textContent =
-      `通信状態：${
-        bitrate.toFixed(2)
-      }Mbps / loss ${
-        loss.toFixed(1)
-      }% / RTT ${
-        Math.round(rtt)
-      }ms / drop ${
-        droppedDelta
-      }`;
-
-
-    const bad =
-      loss > 5 ||
-      droppedDelta > 30 ||
-      rtt > 350 ||
-      bitrate < 0.55;
-
-
-    const good =
-      loss < 1.5 &&
-      droppedDelta < 8 &&
-      rtt < 200 &&
-      bitrate > 1.2;
-
-
-    if(
-      bad &&
-      autoIndex > 0 &&
-      now - lastChange > 8000
-    ){
-
-      autoIndex--;
-
-      lastChange =
-        now;
-
-      goodSamples =
-        0;
-
-
-      const p =
-        profiles[autoIndex];
-
-
-      socket.emit(
-        "change-quality",
-        {
-          room,
-          quality:p[0],
-          fps:p[1]
-        }
-      );
-
-
-      setStatus(
-        `自動調整：${p[0]}p / ${p[1]}FPS`
-      );
-
-    }
-
-
-    else if(good){
-
-      goodSamples++;
-
-
-      if(
-        goodSamples >= 3 &&
-        autoIndex < 3 &&
-        now - lastChange > 10000
-      ){
-
-        autoIndex++;
-
-        lastChange =
-          now;
-
-        goodSamples =
-          0;
-
-
-        const p =
-          profiles[autoIndex];
-
-
-        socket.emit(
-          "change-quality",
-          {
-            room,
-            quality:p[0],
-            fps:p[1]
-          }
-        );
-
-
-        setStatus(
-          `自動調整：${p[0]}p / ${p[1]}FPS`
-        );
-
-      }
-
-    }
-
-  }
-
-
-  last = {
-
-    time:now,
-
-    bytes,
-
-    packets,
-
-    lost,
-
-    dropped
-
-  };
+  talkButton.textContent =
+    "話しています…";
 
 }
 
 
-/* =====================================
-   統計開始
-===================================== */
+function talkStop(event) {
 
-function startStats(){
+  if (
+    !isViewer ||
+    !viewerMicTrack
+  ) {
 
-  if(statsTimer){
+    return;
+
+  }
+
+
+  event.preventDefault();
+
+
+  viewerMicTrack.enabled =
+    false;
+
+
+  talkButton.classList.remove(
+    "active"
+  );
+
+
+  talkButton.textContent =
+    "押して話す";
+
+}
+
+
+talkButton.addEventListener(
+  "pointerdown",
+  talkStart
+);
+
+talkButton.addEventListener(
+  "pointerup",
+  talkStop
+);
+
+talkButton.addEventListener(
+  "pointercancel",
+  talkStop
+);
+
+
+/* =====================================================
+   画質
+===================================================== */
+
+const profiles = {
+
+  "480": {
+    width: 854,
+    height: 480,
+    fps: 15,
+    bitrate: 700000
+  },
+
+  "720": {
+    width: 1280,
+    height: 720,
+    fps: 30,
+    bitrate: 1800000
+  },
+
+  "1080": {
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    bitrate: 3500000
+  }
+
+};
+
+
+async function applyQuality(
+  quality
+) {
+
+  if (
+    !isCamera ||
+    !localStream ||
+    !peer
+  ) {
+
+    return;
+
+  }
+
+
+  const profile =
+    profiles[quality];
+
+
+  if (!profile) {
+    return;
+  }
+
+
+  const videoTrack =
+    localStream
+      .getVideoTracks()[0];
+
+
+  if (!videoTrack) {
+    return;
+  }
+
+
+  try {
+
+    await videoTrack.applyConstraints({
+
+      width: {
+        ideal:
+          profile.width
+      },
+
+      height: {
+        ideal:
+          profile.height
+      },
+
+      frameRate: {
+        ideal:
+          profile.fps,
+        max:
+          profile.fps
+      }
+
+    });
+
+
+    const sender =
+      peer
+        .getSenders()
+        .find(
+          s =>
+            s.track &&
+            s.track.kind ===
+            "video"
+        );
+
+
+    if (sender) {
+
+      const params =
+        sender.getParameters();
+
+
+      if (!params.encodings) {
+
+        params.encodings =
+          [{}];
+
+      }
+
+
+      params.encodings[0]
+        .maxBitrate =
+          profile.bitrate;
+
+
+      await sender.setParameters(
+        params
+      );
+
+    }
+
+
+    currentQuality =
+      quality;
+
+    lastQualityChange =
+      Date.now();
+
+
+    goodSamples =
+      0;
+
+
+  } catch (error) {
+
+    console.error(
+      "[Quality]",
+      error
+    );
+
+  }
+
+}
+
+
+document
+  .getElementById(
+    "quality480"
+  )
+  .onclick = () => {
+
+    autoQuality =
+      false;
+
+    applyQuality(
+      "480"
+    );
+
+  };
+
+
+document
+  .getElementById(
+    "quality720"
+  )
+  .onclick = () => {
+
+    autoQuality =
+      false;
+
+    applyQuality(
+      "720"
+    );
+
+  };
+
+
+document
+  .getElementById(
+    "quality1080"
+  )
+  .onclick = () => {
+
+    autoQuality =
+      false;
+
+    applyQuality(
+      "1080"
+    );
+
+  };
+
+
+document
+  .getElementById(
+    "autoButton"
+  )
+  .onclick = () => {
+
+    autoQuality =
+      true;
+
+    goodSamples =
+      0;
+
+    status.textContent =
+      "自動画質調整を開始しました";
+
+  };
+
+
+/* =====================================================
+   自動画質
+===================================================== */
+
+function startAutoQuality() {
+
+  if (statsTimer) {
 
     clearInterval(
       statsTimer
@@ -1968,87 +2493,659 @@ function startStats(){
 
   statsTimer =
     setInterval(
-      autoStats,
-      3000
+      checkNetwork,
+      4000
     );
 
 }
 
 
-/* =====================================
-   復帰処理
-===================================== */
+async function checkNetwork() {
+
+  if (
+    !isCamera ||
+    !autoQuality ||
+    !peer ||
+    peer.connectionState !==
+      "connected"
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    const stats =
+      await peer.getStats();
+
+
+    let outboundBytes =
+      0;
+
+    let rtt =
+      0;
+
+
+    stats.forEach(
+      report => {
+
+        /*
+         * Camera側なので
+         * inboundではなく
+         * outboundを見る。
+         */
+
+        if (
+          report.type ===
+          "outbound-rtp" &&
+          report.kind ===
+          "video"
+        ) {
+
+          outboundBytes =
+            report.bytesSent || 0;
+
+        }
+
+
+        if (
+          report.type ===
+          "candidate-pair" &&
+          report.state ===
+          "succeeded"
+        ) {
+
+          if (
+            typeof report.currentRoundTripTime ===
+            "number"
+          ) {
+
+            rtt =
+              report.currentRoundTripTime *
+              1000;
+
+          }
+
+        }
+
+      }
+    );
+
+
+    const now =
+      Date.now();
+
+
+    let bitrate =
+      0;
+
+
+    if (
+      lastStatsTime > 0
+    ) {
+
+      const bytesDelta =
+        Math.max(
+          0,
+          outboundBytes -
+          lastBytesSent
+        );
+
+
+      const timeDelta =
+        Math.max(
+          1,
+          now -
+          lastStatsTime
+        );
+
+
+      bitrate =
+        bytesDelta *
+        8 *
+        1000 /
+        timeDelta;
+
+    }
+
+
+    lastBytesSent =
+      outboundBytes;
+
+    lastStatsTime =
+      now;
+
+
+    telemetry.textContent =
+      `品質 ${currentQuality}p / ` +
+      `RTT ${Math.round(rtt)}ms / ` +
+      `送信 ${(bitrate / 1000000).toFixed(2)}Mbps`;
+
+
+    /*
+     * 極端に悪い時だけ下げる。
+     *
+     * 頻繁な画質変更そのものが
+     * 通信を不安定にするのを防ぐ。
+     */
+
+    const bad =
+      rtt > 500 ||
+      (
+        bitrate > 0 &&
+        bitrate < 350000
+      );
+
+
+    const good =
+      rtt > 0 &&
+      rtt < 180 &&
+      bitrate > 1000000;
+
+
+    const elapsed =
+      Date.now() -
+      lastQualityChange;
+
+
+    if (
+      bad &&
+      elapsed > 15000
+    ) {
+
+      goodSamples =
+        0;
+
+
+      if (
+        currentQuality ===
+        "1080"
+      ) {
+
+        await applyQuality(
+          "720"
+        );
+
+      } else if (
+        currentQuality ===
+        "720"
+      ) {
+
+        await applyQuality(
+          "480"
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    if (good) {
+
+      goodSamples++;
+
+    } else {
+
+      goodSamples =
+        0;
+
+    }
+
+
+    /*
+     * 良好な状態が
+     * 十分長く続いた時だけ上げる。
+     */
+
+    if (
+      goodSamples >= 5 &&
+      elapsed > 30000
+    ) {
+
+      if (
+        currentQuality ===
+        "480"
+      ) {
+
+        await applyQuality(
+          "720"
+        );
+
+      } else if (
+        currentQuality ===
+        "720"
+      ) {
+
+        await applyQuality(
+          "1080"
+        );
+
+      }
+
+
+      goodSamples =
+        0;
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "[Stats]",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   復旧制御
+===================================================== */
+
+function cancelRecovery() {
+
+  recoveryGeneration++;
+
+
+  if (recoveryTimer) {
+
+    clearTimeout(
+      recoveryTimer
+    );
+
+    recoveryTimer =
+      null;
+
+  }
+
+}
+
+
+function scheduleRecovery(
+  delay = 4000
+) {
+
+  if (
+    !started ||
+    reconnecting
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * すでに予約済みなら
+   * 何もしない。
+   */
+
+  if (recoveryTimer) {
+
+    return;
+
+  }
+
+
+  const generation =
+    recoveryGeneration;
+
+
+  recoveryTimer =
+    setTimeout(
+      async () => {
+
+        recoveryTimer =
+          null;
+
+
+        /*
+         * その間に接続が戻ったら
+         * 復旧しない。
+         */
+
+        if (
+          generation !==
+          recoveryGeneration
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          peer &&
+          peer.connectionState ===
+            "connected"
+        ) {
+
+          return;
+
+        }
+
+
+        await recoverConnection();
+
+      },
+      delay
+    );
+
+}
+
+
+/* =====================================================
+   Peer再接続
+===================================================== */
+
+async function recoverConnection() {
+
+  if (
+    reconnecting ||
+    !started
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * disconnectedだけなら、
+   * もう一度状態を確認してから作り直す。
+   */
+
+  if (
+    peer &&
+    peer.connectionState ===
+      "disconnected"
+  ) {
+
+    await wait(2000);
+
+
+    if (
+      peer &&
+      peer.connectionState ===
+        "connected"
+    ) {
+
+      return;
+
+    }
+
+  }
+
+
+  reconnecting =
+    true;
+
+
+  recoveryGeneration++;
+
+
+  status.textContent =
+    "接続を復旧しています…";
+
+
+  try {
+
+    /*
+     * 新しいPeerを作る。
+     */
+
+    await createPeer();
+
+
+    /*
+     * Camera
+     */
+
+    if (isCamera) {
+
+      if (!localStream) {
+
+        throw new Error(
+          "localStream unavailable"
+        );
+
+      }
+
+
+      localStream
+        .getTracks()
+        .forEach(
+          track => {
+
+            if (
+              !track.ended
+            ) {
+
+              peer.addTrack(
+                track,
+                localStream
+              );
+
+            }
+
+          }
+        );
+
+
+      socket.emit(
+        "join",
+        room
+      );
+
+
+      await wait(800);
+
+
+      /*
+       * Viewerが既にいる場合だけ
+       * Offerを送る。
+       */
+
+      if (
+        socket.connected
+      ) {
+
+        await makeOffer();
+
+      }
+
+    }
+
+
+    /*
+     * Viewer
+     */
+
+    if (isViewer) {
+
+      if (
+        viewerMicTrack &&
+        viewerMicStream &&
+        !viewerMicTrack.ended
+      ) {
+
+        peer.addTrack(
+          viewerMicTrack,
+          viewerMicStream
+        );
+
+      }
+
+
+      socket.emit(
+        "join",
+        room
+      );
+
+
+      await wait(800);
+
+
+      if (
+        socket.connected
+      ) {
+
+        socket.emit(
+          "request-offer",
+          { room }
+        );
+
+      }
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "[Recovery]",
+      error
+    );
+
+
+    status.textContent =
+      "復旧に失敗しました。再試行します…";
+
+
+    /*
+     * 失敗しても即ループさせない。
+     */
+
+    setTimeout(
+      () => {
+
+        if (
+          started &&
+          !peer?.connectionState ===
+            "connected"
+        ) {
+
+          scheduleRecovery(
+            5000
+          );
+
+        }
+
+      },
+      5000
+    );
+
+  } finally {
+
+    reconnecting =
+      false;
+
+  }
+
+}
+
+
+/* =====================================================
+   復帰チェック
+===================================================== */
+
+async function checkAfterResume() {
+
+  if (!started) {
+    return;
+  }
+
+
+  /*
+   * ここではPeerを
+   * いきなり作り直さない。
+   */
+
+  if (
+    peer &&
+    peer.connectionState ===
+      "connected"
+  ) {
+
+    status.textContent =
+      "接続中";
+
+    return;
+
+  }
+
+
+  if (
+    peer &&
+    (
+      peer.connectionState ===
+        "disconnected" ||
+      peer.connectionState ===
+        "connecting"
+    )
+  ) {
+
+    status.textContent =
+      "接続を確認しています…";
+
+    /*
+     * しばらく待ってから判断。
+     */
+
+    scheduleRecovery(
+      5000
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !peer ||
+    peer.connectionState ===
+      "failed" ||
+    peer.connectionState ===
+      "closed"
+  ) {
+
+    scheduleRecovery(
+      1500
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   visibility
+===================================================== */
 
 document.addEventListener(
   "visibilitychange",
   () => {
 
-    if(
+    if (
       document.visibilityState ===
       "visible"
-    ){
+    ) {
+
+      /*
+       * 復帰しただけでは
+       * Peerを作り直さない。
+       */
 
       setTimeout(
-        () => {
-
-          if(
-            role === "camera"
-          ){
-
-            const track =
-              local
-                ?.getVideoTracks()
-                ?. [0];
-
-
-            if(
-              !track ||
-              track.readyState ===
-                "ended"
-            ){
-
-              recover(
-                "camera resume"
-              );
-
-            }
-
-          }
-
-
-          if(
-            role === "viewer"
-          ){
-
-            if(
-              !peer ||
-              peer.connectionState ===
-                "failed" ||
-              peer.connectionState ===
-                "closed"
-            ){
-
-              recover(
-                "viewer resume"
-              );
-
-            }
-
-          }
-
-
-          remote
-            .play()
-            .catch(()=>{});
-
-        },
-        300
+        checkAfterResume,
+        1500
       );
-
-    }
-    else{
-
-      talkOn(false);
 
     }
 
@@ -2056,21 +3153,62 @@ document.addEventListener(
 );
 
 
+/* =====================================================
+   pageshow
+===================================================== */
+
 window.addEventListener(
   "pageshow",
-  () => recover("pageshow")
+  () => {
+
+    setTimeout(
+      checkAfterResume,
+      1500
+    );
+
+  }
 );
 
+
+/* =====================================================
+   focus
+===================================================== */
 
 window.addEventListener(
   "focus",
-  () => recover("focus")
+  () => {
+
+    setTimeout(
+      checkAfterResume,
+      1500
+    );
+
+  }
 );
 
 
+/* =====================================================
+   Network
+===================================================== */
+
 window.addEventListener(
   "online",
-  () => recover("online")
+  () => {
+
+    status.textContent =
+      "ネットワーク復旧。接続を確認しています…";
+
+
+    /*
+     * すぐPeerを壊さない。
+     */
+
+    setTimeout(
+      checkAfterResume,
+      2000
+    );
+
+  }
 );
 
 
@@ -2078,12 +3216,36 @@ window.addEventListener(
   "offline",
   () => {
 
-    setStatus(
-      "オフラインです。接続を待っています…"
-    );
+    status.textContent =
+      "オフラインです。ネットワーク復旧を待っています…";
 
   }
 );
+
+
+/* =====================================================
+   待機
+===================================================== */
+
+function wait(ms) {
+
+  return new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        ms
+      )
+  );
+
+}
+
+
+/* =====================================================
+   初期表示
+===================================================== */
+
+status.textContent =
+  "CAMVIEW 起動中…";
 
 </script>
 
