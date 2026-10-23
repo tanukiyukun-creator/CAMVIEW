@@ -11,187 +11,104 @@
 
   <title>CAMVIEW</title>
 
-
   <style>
 
     * {
       box-sizing: border-box;
     }
 
-
     body {
-
       margin: 0;
-
       min-height: 100vh;
-
       background: #09090b;
-
       color: #fff;
-
-      font-family:
-        Arial,
-        sans-serif;
-
+      font-family: Arial, sans-serif;
     }
-
 
     .app {
-
-      width:
-        min(1100px, 100%);
-
+      width: min(1100px, 100%);
       margin: auto;
-
       padding: 24px;
-
     }
-
 
     h1 {
-
-      margin:
-        0 0 20px;
-
+      margin: 0 0 20px;
       font-size: 28px;
-
     }
-
 
     .video-box {
-
       width: 100%;
-
       aspect-ratio: 16 / 9;
-
       background: #151518;
-
       border-radius: 18px;
-
       overflow: hidden;
-
       display: flex;
-
       align-items: center;
-
       justify-content: center;
-
     }
-
 
     video {
-
       width: 100%;
-
       height: 100%;
-
       object-fit: contain;
-
       display: none;
-
       background: #000;
-
     }
-
 
     #message {
-
       color: #777;
-
       font-size: 16px;
-
     }
-
 
     .status {
-
       margin-top: 14px;
-
       color: #aaa;
-
       font-size: 14px;
-
     }
-
 
     .buttons {
-
       margin-top: 20px;
-
       display: flex;
-
       gap: 10px;
-
       flex-wrap: wrap;
-
     }
-
 
     button {
-
       border: 0;
-
       border-radius: 10px;
-
-      padding:
-        13px 20px;
-
+      padding: 13px 20px;
       background: #fff;
-
       color: #111;
-
       font-size: 15px;
-
       cursor: pointer;
-
     }
-
 
     button:active {
-
-      transform:
-        scale(0.98);
-
+      transform: scale(0.98);
     }
-
 
     .camera-buttons {
-
       display: none;
-
       margin-top: 12px;
-
       gap: 10px;
-
       flex-wrap: wrap;
-
     }
 
-
     .camera-buttons button {
-
       background: #222;
-
       color: #fff;
-
-      border:
-        1px solid #444;
-
+      border: 1px solid #444;
     }
 
   </style>
 
 </head>
 
-
 <body>
-
 
   <main class="app">
 
-
     <h1>CAMVIEW</h1>
-
 
     <div class="video-box">
 
@@ -207,7 +124,6 @@
 
     </div>
 
-
     <div
       class="status"
       id="status">
@@ -215,7 +131,6 @@
       サーバーに接続しています…
 
     </div>
-
 
     <div class="buttons">
 
@@ -228,7 +143,6 @@
       </button>
 
     </div>
-
 
     <div
       class="camera-buttons"
@@ -244,52 +158,52 @@
 
     </div>
 
-
   </main>
 
-
-  <script
-    src="/socket.io/socket.io.js">
-  </script>
-
+  <script src="/socket.io/socket.io.js"></script>
 
   <script>
 
+    // =====================================
+    // Socket.IO
+    // =====================================
 
     const socket = io();
 
-
-    const room =
-      "camview-main";
-
+    const room = "camview-main";
 
     const remoteVideo =
       document.getElementById(
         "remoteVideo"
       );
 
-
     const message =
       document.getElementById(
         "message"
       );
-
 
     const status =
       document.getElementById(
         "status"
       );
 
-
     const cameraButtons =
       document.getElementById(
         "cameraButtons"
       );
 
-
     let peer = null;
 
     let localStream = null;
+
+    let pendingIceCandidates = [];
+
+    let iceServersConfig = [
+      {
+        urls:
+          "stun:stun.l.google.com:19302"
+      }
+    ];
 
 
     // =====================================
@@ -319,23 +233,183 @@
 
 
     // =====================================
-    // WebRTC
+    // TURN設定取得
+    // =====================================
+
+    async function loadTurnConfig() {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/turn-config",
+            {
+              cache: "no-store"
+            }
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            "TURN_CONFIG_UNAVAILABLE"
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (
+          Array.isArray(
+            data.iceServers
+          ) &&
+          data.iceServers.length > 0
+        ) {
+
+          iceServersConfig =
+            data.iceServers;
+
+          console.log(
+            "TURN設定を読み込みました"
+          );
+
+        }
+
+      } catch (error) {
+
+        console.warn(
+          "TURN設定を取得できませんでした。",
+          error
+        );
+
+        console.warn(
+          "STUNで接続を試します。"
+        );
+
+      }
+
+    }
+
+
+    // =====================================
+    // ICE Candidate処理
+    // =====================================
+
+    async function applyPendingIceCandidates() {
+
+      if (
+        !peer ||
+        !peer.remoteDescription
+      ) {
+        return;
+      }
+
+      const candidates =
+        pendingIceCandidates;
+
+      pendingIceCandidates = [];
+
+      for (
+        const candidate of candidates
+      ) {
+
+        try {
+
+          await peer.addIceCandidate(
+            candidate
+          );
+
+        } catch (error) {
+
+          console.warn(
+            "ICE candidate error:",
+            error
+          );
+
+        }
+
+      }
+
+    }
+
+
+    // =====================================
+    // 送信画質設定
+    // =====================================
+
+    async function tuneSender(
+      sender
+    ) {
+
+      if (
+        !sender ||
+        !sender.getParameters
+      ) {
+        return;
+      }
+
+      try {
+
+        const parameters =
+          sender.getParameters();
+
+        if (
+          !parameters.encodings ||
+          parameters.encodings.length === 0
+        ) {
+
+          parameters.encodings = [
+            {}
+          ];
+
+        }
+
+        parameters
+          .encodings[0]
+          .maxBitrate =
+          2500000;
+
+        parameters
+          .encodings[0]
+          .maxFramerate =
+          30;
+
+        if (
+          "degradationPreference"
+          in parameters
+        ) {
+
+          parameters
+            .degradationPreference =
+            "maintain-resolution";
+
+        }
+
+        await sender.setParameters(
+          parameters
+        );
+
+      } catch (error) {
+
+        console.warn(
+          "送信品質設定を適用できませんでした:",
+          error
+        );
+
+      }
+
+    }
+
+
+    // =====================================
+    // PeerConnection
     // =====================================
 
     function createPeer() {
 
-
       peer =
         new RTCPeerConnection({
 
-          iceServers: [
-
-            {
-              urls:
-                "stun:stun.l.google.com:19302"
-            }
-
-          ],
+          iceServers:
+            iceServersConfig,
 
           bundlePolicy:
             "max-bundle",
@@ -349,18 +423,23 @@
         });
 
 
+      // -----------------------------
+      // ICE
+      // -----------------------------
+
       peer.onicecandidate =
         event => {
 
-          if (!event.candidate) {
+          if (
+            !event.candidate
+          ) {
             return;
           }
-
 
           socket.emit(
             "ice-candidate",
             {
-              room: room,
+              room,
               candidate:
                 event.candidate
             }
@@ -369,29 +448,31 @@
         };
 
 
+      // -----------------------------
+      // Remote Track
+      // -----------------------------
+
       peer.ontrack =
         event => {
 
-          if (!event.streams[0]) {
+          if (
+            !event.streams ||
+            !event.streams[0]
+          ) {
             return;
           }
-
 
           remoteVideo.srcObject =
             event.streams[0];
 
-
           remoteVideo.style.display =
             "block";
-
 
           message.style.display =
             "none";
 
-
           status.textContent =
             "映像・音声を受信しています";
-
 
           remoteVideo
             .play()
@@ -400,35 +481,71 @@
         };
 
 
+      // -----------------------------
+      // Connection State
+      // -----------------------------
+
       peer.onconnectionstatechange =
         () => {
 
           const state =
             peer.connectionState;
 
+          console.log(
+            "connectionState:",
+            state
+          );
 
-          if (state === "connected") {
+          if (
+            state === "connected"
+          ) {
 
             status.textContent =
               "接続しました";
 
           }
 
+          if (
+            state === "connecting"
+          ) {
 
-          if (state === "disconnected") {
+            status.textContent =
+              "接続しています…";
+
+          }
+
+          if (
+            state === "disconnected"
+          ) {
 
             status.textContent =
               "接続が不安定です";
 
           }
 
-
-          if (state === "failed") {
+          if (
+            state === "failed"
+          ) {
 
             status.textContent =
               "接続に失敗しました";
 
           }
+
+        };
+
+
+      // -----------------------------
+      // ICE Connection State
+      // -----------------------------
+
+      peer.oniceconnectionstatechange =
+        () => {
+
+          console.log(
+            "iceConnectionState:",
+            peer.iceConnectionState
+          );
 
         };
 
@@ -443,28 +560,20 @@
       facingMode
     ) {
 
-
       status.textContent =
         "カメラを切り替えています…";
 
-
       try {
 
-
-        // 現在のカメラを停止
-
-        if (localStream) {
-
+        const oldVideoTrack =
           localStream
-            .getTracks()
-            .forEach(
-              track => track.stop()
-            );
-
-        }
+            ? localStream.getVideoTracks()[0]
+            : null;
 
 
-        const newStream =
+        // 映像だけ取得
+        // マイクは既存のものを維持する
+        const newVideoStream =
           await navigator
             .mediaDevices
             .getUserMedia({
@@ -486,49 +595,72 @@
                   max: 30
                 },
 
-                facingMode:
-                  facingMode
+                facingMode
 
               },
 
-              audio: {
-
-                echoCancellation:
-                  true,
-
-                noiseSuppression:
-                  true,
-
-                autoGainControl:
-                  true
-
-              }
+              audio: false
 
             });
 
 
-        localStream =
-          newStream;
-
-
-        // ---------------------------------
-        // WebRTCの映像トラックを差し替え
-        // ---------------------------------
-
         const videoTrack =
-          localStream.getVideoTracks()[0];
+          newVideoStream
+            .getVideoTracks()[0];
 
 
+        if (!videoTrack) {
+
+          throw new Error(
+            "VIDEO_TRACK_NOT_FOUND"
+          );
+
+        }
+
+
+        // 古い映像を停止
+        if (oldVideoTrack) {
+          oldVideoTrack.stop();
+        }
+
+
+        // 既存音声を維持
+        const audioTrack =
+          localStream
+            ? localStream
+                .getAudioTracks()[0]
+            : null;
+
+
+        if (audioTrack) {
+
+          localStream =
+            new MediaStream([
+              audioTrack,
+              videoTrack
+            ]);
+
+        } else {
+
+          localStream =
+            new MediaStream([
+              videoTrack
+            ]);
+
+        }
+
+
+        // WebRTCの映像トラックだけ交換
         if (peer) {
 
           const sender =
             peer
               .getSenders()
               .find(
-                s =>
-                  s.track &&
-                  s.track.kind ===
-                  "video"
+                sender =>
+                  sender.track &&
+                  sender.track.kind ===
+                    "video"
               );
 
 
@@ -538,11 +670,20 @@
               videoTrack
             );
 
+            await tuneSender(
+              sender
+            );
+
           } else {
 
-            peer.addTrack(
-              videoTrack,
-              localStream
+            const newSender =
+              peer.addTrack(
+                videoTrack,
+                localStream
+              );
+
+            await tuneSender(
+              newSender
             );
 
           }
@@ -551,10 +692,10 @@
 
 
         status.textContent =
-          facingMode === "environment"
+          facingMode ===
+          "environment"
             ? "外カメラに切り替えました"
             : "内カメラに切り替えました";
-
 
       }
 
@@ -562,10 +703,9 @@
 
         console.error(error);
 
-
         status.textContent =
-          "カメラ切替エラー: "
-          + error.name;
+          "カメラ切替エラー: " +
+          error.name;
 
       }
 
@@ -585,11 +725,16 @@
         async () => {
 
           status.textContent =
+            "接続設定を準備しています…";
+
+          await loadTurnConfig();
+
+
+          status.textContent =
             "カメラとマイクを起動しています…";
 
 
           try {
-
 
             localStream =
               await navigator
@@ -637,18 +782,30 @@
             createPeer();
 
 
-            localStream
-              .getTracks()
-              .forEach(
-                track => {
+            // addTrackを順番に処理
+            for (
+              const track of
+              localStream.getTracks()
+            ) {
 
-                  peer.addTrack(
-                    track,
-                    localStream
-                  );
+              const sender =
+                peer.addTrack(
+                  track,
+                  localStream
+                );
 
-                }
-              );
+              if (
+                track.kind ===
+                "video"
+              ) {
+
+                await tuneSender(
+                  sender
+                );
+
+              }
+
+            }
 
 
             socket.emit(
@@ -667,10 +824,9 @@
 
             console.error(error);
 
-
             status.textContent =
-              "カメラ・マイクを使用できません: "
-              + error.name;
+              "カメラ・マイクを使用できません: " +
+              error.name;
 
           }
 
@@ -688,7 +844,13 @@
       )
       .addEventListener(
         "click",
-        () => {
+        async () => {
+
+          status.textContent =
+            "接続設定を準備しています…";
+
+
+          await loadTurnConfig();
 
 
           createPeer();
@@ -703,8 +865,6 @@
           status.textContent =
             "カメラを探しています…";
 
-
-          // 閲覧側にカメラ切替ボタンを表示
 
           cameraButtons.style.display =
             "flex";
@@ -725,19 +885,14 @@
         "click",
         () => {
 
-
           socket.emit(
             "switch-camera",
             {
-
-              room: room,
-
+              room,
               camera:
                 "environment"
-
             }
           );
-
 
           status.textContent =
             "外カメラへ切り替えています…";
@@ -758,19 +913,14 @@
         "click",
         () => {
 
-
           socket.emit(
             "switch-camera",
             {
-
-              room: room,
-
+              room,
               camera:
                 "user"
-
             }
           );
-
 
           status.textContent =
             "内カメラへ切り替えています…";
@@ -780,17 +930,20 @@
 
 
     // =====================================
-    // カメラ側：切替命令
+    // カメラ側：カメラ切替命令
     // =====================================
 
     socket.on(
       "switch-camera",
       async data => {
 
-        if (!localStream) {
+        if (
+          !localStream ||
+          !data ||
+          !data.camera
+        ) {
           return;
         }
-
 
         await startCamera(
           data.camera
@@ -808,14 +961,14 @@
       "peer-joined",
       async () => {
 
-
-        if (!localStream || !peer) {
+        if (
+          !localStream ||
+          !peer
+        ) {
           return;
         }
 
-
         try {
-
 
           const offer =
             await peer.createOffer({
@@ -837,20 +990,19 @@
           socket.emit(
             "offer",
             {
-
-              room: room,
-
-              offer: offer
-
+              room,
+              offer
             }
           );
-
 
         }
 
         catch (error) {
 
-          console.error(error);
+          console.error(
+            "Offer error:",
+            error
+          );
 
         }
 
@@ -859,7 +1011,7 @@
 
 
     // =====================================
-    // Offer
+    // Offer受信
     // =====================================
 
     socket.on(
@@ -867,7 +1019,6 @@
       async offer => {
 
         try {
-
 
           if (!peer) {
             createPeer();
@@ -877,6 +1028,9 @@
           await peer.setRemoteDescription(
             offer
           );
+
+
+          await applyPendingIceCandidates();
 
 
           const answer =
@@ -891,21 +1045,19 @@
           socket.emit(
             "answer",
             {
-
-              room: room,
-
-              answer: answer
-
+              room,
+              answer
             }
           );
-
 
         }
 
         catch (error) {
 
-          console.error(error);
-
+          console.error(
+            "Answer error:",
+            error
+          );
 
           status.textContent =
             "接続処理でエラーが発生しました";
@@ -917,7 +1069,7 @@
 
 
     // =====================================
-    // Answer
+    // Answer受信
     // =====================================
 
     socket.on(
@@ -925,7 +1077,6 @@
       async answer => {
 
         try {
-
 
           if (!peer) {
             return;
@@ -937,11 +1088,16 @@
           );
 
 
+          await applyPendingIceCandidates();
+
         }
 
         catch (error) {
 
-          console.error(error);
+          console.error(
+            "Remote description error:",
+            error
+          );
 
         }
 
@@ -950,7 +1106,7 @@
 
 
     // =====================================
-    // ICE
+    // ICE Candidate
     // =====================================
 
     socket.on(
@@ -959,9 +1115,23 @@
 
         try {
 
-
           if (!peer) {
             return;
+          }
+
+
+          // RemoteDescriptionより先に
+          // ICEが届いた場合は一旦保存
+          if (
+            !peer.remoteDescription
+          ) {
+
+            pendingIceCandidates.push(
+              candidate
+            );
+
+            return;
+
           }
 
 
@@ -969,18 +1139,26 @@
             candidate
           );
 
-
         }
 
         catch (error) {
 
-          console.error(error);
+          console.warn(
+            "ICE candidate error:",
+            error
+          );
 
         }
 
       }
     );
 
+
+    // =====================================
+    // 起動時
+    // =====================================
+
+    loadTurnConfig();
 
   </script>
 
