@@ -9,10 +9,16 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*"
-  }
+  },
+  pingInterval: 25000,
+  pingTimeout: 20000
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+
+// ================================
+// Health
+// ================================
 
 app.get("/health", (req, res) => {
   res.json({
@@ -22,7 +28,7 @@ app.get("/health", (req, res) => {
 });
 
 // ================================
-// TURN設定
+// TURN
 // ================================
 
 app.get("/api/turn-config", (req, res) => {
@@ -42,36 +48,30 @@ app.get("/api/turn-config", (req, res) => {
   res.json({
     iceServers: [
       {
-        urls:
-          "stun:stun.relay.metered.ca:80"
+        urls: "stun:stun.relay.metered.ca:80"
       },
       {
-        urls:
-          "turn:global.relay.metered.ca:80",
+        urls: "turn:global.relay.metered.ca:80",
         username,
         credential
       },
       {
-        urls:
-          "turn:global.relay.metered.ca:80?transport=tcp",
+        urls: "turn:global.relay.metered.ca:80?transport=tcp",
         username,
         credential
       },
       {
-        urls:
-          "turn:global.relay.metered.ca:443",
+        urls: "turn:global.relay.metered.ca:443",
         username,
         credential
       },
       {
-        urls:
-          "turns:global.relay.metered.ca:443?transport=tcp",
+        urls: "turns:global.relay.metered.ca:443?transport=tcp",
         username,
         credential
       }
     ]
   });
-
 });
 
 // ================================
@@ -81,44 +81,85 @@ app.get("/api/turn-config", (req, res) => {
 io.on("connection", (socket) => {
 
   console.log(
-    "connected:",
+    "[Socket] connected:",
     socket.id
   );
 
+  // ==============================
+  // Join
+  // ==============================
+
   socket.on("join", (room) => {
 
-    if (!room) return;
+    if (!room) {
+      return;
+    }
+
+    // 同じ部屋への重複Joinを防止
+    if (socket.data.room === room) {
+
+      console.log(
+        "[Socket] already joined:",
+        socket.id,
+        room
+      );
+
+      return;
+    }
+
+    // 以前の部屋があれば退出
+    if (socket.data.room) {
+
+      socket.leave(
+        socket.data.room
+      );
+
+    }
 
     socket.join(room);
 
     socket.data.room = room;
 
     console.log(
-      socket.id +
-      " joined room: " +
+      "[Socket] joined:",
+      socket.id,
       room
     );
 
+    // 自分以外にだけ通知
     socket.to(room).emit(
       "peer-joined"
     );
 
   });
 
+  // ==============================
+  // Offer要求
+  // ==============================
+
   socket.on(
     "request-offer",
     (data) => {
 
-      if (!data || !data.room) {
+      if (
+        !data ||
+        !data.room
+      ) {
         return;
       }
 
       socket
         .to(data.room)
-        .emit("request-offer");
+        .emit(
+          "request-offer"
+        );
 
     }
   );
+
+  // ==============================
+  // Offer
+  // ==============================
 
   socket.on(
     "offer",
@@ -142,6 +183,10 @@ io.on("connection", (socket) => {
     }
   );
 
+  // ==============================
+  // Answer
+  // ==============================
+
   socket.on(
     "answer",
     (data) => {
@@ -163,6 +208,10 @@ io.on("connection", (socket) => {
 
     }
   );
+
+  // ==============================
+  // ICE
+  // ==============================
 
   socket.on(
     "ice-candidate",
@@ -186,9 +235,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  // ================================
+  // ==============================
   // カメラ切替
-  // ================================
+  // ==============================
 
   socket.on(
     "switch-camera",
@@ -215,9 +264,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  // ================================
-  // 画質・FPS変更
-  // ================================
+  // ==============================
+  // 画質・FPS
+  // ==============================
 
   socket.on(
     "change-quality",
@@ -245,19 +294,28 @@ io.on("connection", (socket) => {
     }
   );
 
+  // ==============================
+  // Disconnect
+  // ==============================
+
   socket.on(
     "disconnect",
-    () => {
+    (reason) => {
 
       console.log(
-        "disconnected:",
-        socket.id
+        "[Socket] disconnected:",
+        socket.id,
+        reason
       );
 
     }
   );
 
 });
+
+// ================================
+// Start
+// ================================
 
 const PORT =
   process.env.PORT || 10000;
