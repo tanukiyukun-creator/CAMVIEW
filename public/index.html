@@ -3,1313 +3,1898 @@
 
 <head>
 
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width,initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
 
-<title>CAMVIEW</title>
+  <title>CAMVIEW</title>
 
-<style>
+  <style>
 
-* {
-  box-sizing: border-box;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: #09090b;
-  color: white;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #09090b;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
 
-.app {
-  width: min(1100px, 100%);
-  margin: auto;
-  padding: 24px;
-}
+    .app {
+      width: min(1100px, 100%);
+      margin: auto;
+      padding: 24px;
+    }
 
-h1 {
-  margin: 0 0 20px;
-  font-size: 28px;
-}
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
+    }
 
-.video-box {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #151518;
-  border-radius: 18px;
-  overflow: hidden;
+    .video-box {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #151518;
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
 
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: none;
-  background: #000;
-}
+    #message {
+      color: #777;
+      font-size: 16px;
+    }
 
-#message {
-  color: #777;
-}
+    .status {
+      margin-top: 14px;
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.6;
+    }
 
-.status {
-  margin-top: 14px;
-  color: #aaa;
-  font-size: 14px;
-}
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-.buttons {
-  margin-top: 20px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+    button,
+    select {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 18px;
+      background: #fff;
+      color: #111;
+      font-size: 15px;
+      cursor: pointer;
+    }
 
-button,
-select {
-  border: 0;
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 15px;
-}
+    button:active {
+      transform: scale(0.98);
+    }
 
-button {
-  background: white;
-  color: #111;
-  cursor: pointer;
-}
+    .camera-buttons {
+      display: none;
+      margin-top: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-select {
-  background: #222;
-  color: white;
-  border: 1px solid #444;
-}
+    .camera-buttons button {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+    }
 
-.controls {
-  display: none;
-  margin-top: 18px;
-  padding: 16px;
-  background: #151518;
-  border-radius: 14px;
-}
+    .control-panel {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #151518;
+      border: 1px solid #29292d;
+    }
 
-.control-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 12px;
-}
+    .control-title {
+      font-size: 15px;
+      margin-bottom: 12px;
+      color: #ccc;
+    }
 
-.control-row:last-child {
-  margin-bottom: 0;
-}
+    .control-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
 
-.label {
-  width: 70px;
-  color: #aaa;
-}
+    .control-row label {
+      color: #aaa;
+      font-size: 14px;
+      min-width: 70px;
+    }
 
-</style>
+    .auto-info {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #0d0d10;
+      border-radius: 10px;
+      color: #888;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+  </style>
 
 </head>
 
+
 <body>
 
-<main class="app">
+  <main class="app">
 
-<h1>CAMVIEW</h1>
-
-<div class="video-box">
-
-<video
-  id="remoteVideo"
-  autoplay
-  playsinline>
-</video>
-
-<span id="message">
-接続待機中
-</span>
-
-</div>
-
-<div
-  class="status"
-  id="status">
-
-サーバーに接続しています…
-
-</div>
-
-<div class="buttons">
-
-<button id="cameraButton">
-カメラを開始
-</button>
-
-<button id="viewerButton">
-閲覧する
-</button>
-
-</div>
-
-<!-- 閲覧側設定 -->
-
-<div
-  class="controls"
-  id="viewerControls">
-
-<div class="control-row">
-
-<span class="label">
-画質
-</span>
-
-<select id="qualitySelect">
-
-<option value="auto">
-自動
-</option>
-
-<option value="480">
-480p
-</option>
-
-<option value="720" selected>
-720p
-</option>
-
-<option value="1080">
-1080p
-</option>
-
-</select>
-
-</div>
-
-<div class="control-row">
-
-<span class="label">
-FPS
-</span>
-
-<select id="fpsSelect">
-
-<option value="auto">
-自動
-</option>
-
-<option value="15">
-15 FPS
-</option>
-
-<option value="24">
-24 FPS
-</option>
-
-<option value="30" selected>
-30 FPS
-</option>
-
-<option value="60">
-60 FPS
-</option>
-
-</select>
-
-</div>
-
-<div class="control-row">
-
-<button id="applyQuality">
-設定を適用
-</button>
-
-</div>
-
-<div class="control-row">
-
-<button id="rearButton">
-外カメラ
-</button>
-
-<button id="frontButton">
-内カメラ
-</button>
-
-</div>
-
-</div>
-
-</main>
-
-<script src="/socket.io/socket.io.js"></script>
-
-<script>
-
-const socket = io();
-
-const room =
-  "camview-main";
-
-const remoteVideo =
-  document.getElementById(
-    "remoteVideo"
-  );
-
-const message =
-  document.getElementById(
-    "message"
-  );
-
-const status =
-  document.getElementById(
-    "status"
-  );
-
-const viewerControls =
-  document.getElementById(
-    "viewerControls"
-  );
-
-const qualitySelect =
-  document.getElementById(
-    "qualitySelect"
-  );
-
-const fpsSelect =
-  document.getElementById(
-    "fpsSelect"
-  );
-
-let peer = null;
-
-let localStream = null;
-
-let pendingIceCandidates = [];
-
-let iceServersConfig = [
-
-  {
-    urls:
-      "stun:stun.l.google.com:19302"
-  }
-
-];
+    <h1>CAMVIEW</h1>
 
 
-// =====================================
-// TURN設定
-// =====================================
+    <div class="video-box">
 
-async function loadTurnConfig() {
+      <video
+        id="remoteVideo"
+        autoplay
+        playsinline>
+      </video>
 
-  try {
+      <span id="message">
+        接続待機中
+      </span>
 
-    const response =
-      await fetch(
-        "/api/turn-config",
-        {
-          cache: "no-store"
-        }
+    </div>
+
+
+    <div
+      class="status"
+      id="status">
+
+      サーバーに接続しています…
+
+    </div>
+
+
+    <div class="buttons">
+
+      <button id="cameraButton">
+        カメラを開始
+      </button>
+
+      <button id="viewerButton">
+        閲覧する
+      </button>
+
+    </div>
+
+
+    <div
+      class="camera-buttons"
+      id="cameraButtons">
+
+      <button id="rearButton">
+        外カメラ
+      </button>
+
+      <button id="frontButton">
+        内カメラ
+      </button>
+
+    </div>
+
+
+    <div
+      class="control-panel"
+      id="controlPanel">
+
+      <div class="control-title">
+        映像設定
+      </div>
+
+
+      <div class="control-row">
+
+        <label>
+          解像度
+        </label>
+
+        <select id="qualitySelect">
+
+          <option value="auto">
+            自動
+          </option>
+
+          <option value="480">
+            480p
+          </option>
+
+          <option value="720" selected>
+            720p
+          </option>
+
+          <option value="1080">
+            1080p
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="control-row">
+
+        <label>
+          FPS
+        </label>
+
+        <select id="fpsSelect">
+
+          <option value="auto">
+            自動
+          </option>
+
+          <option value="15">
+            15 FPS
+          </option>
+
+          <option value="24">
+            24 FPS
+          </option>
+
+          <option value="30" selected>
+            30 FPS
+          </option>
+
+          <option value="60">
+            60 FPS
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="control-row">
+
+        <button id="applyQualityButton">
+          設定を適用
+        </button>
+
+      </div>
+
+
+      <div
+        class="auto-info"
+        id="autoInfo">
+
+        自動調整：待機中
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <script src="/socket.io/socket.io.js"></script>
+
+
+  <script>
+
+    const socket = io();
+
+
+    const room =
+      "camview-main";
+
+
+    const remoteVideo =
+      document.getElementById(
+        "remoteVideo"
       );
 
-    if (!response.ok) {
-      throw new Error(
-        "TURN_CONFIG_UNAVAILABLE"
-      );
-    }
 
-    const data =
-      await response.json();
-
-    if (
-      Array.isArray(
-        data.iceServers
-      )
-    ) {
-
-      iceServersConfig =
-        data.iceServers;
-
-    }
-
-  }
-
-  catch (error) {
-
-    console.warn(
-      "TURN設定を取得できませんでした",
-      error
-    );
-
-  }
-
-}
-
-
-// =====================================
-// ICE
-// =====================================
-
-async function applyPendingIceCandidates() {
-
-  if (
-    !peer ||
-    !peer.remoteDescription
-  ) {
-
-    return;
-
-  }
-
-  const list =
-    pendingIceCandidates;
-
-  pendingIceCandidates = [];
-
-  for (
-    const candidate of list
-  ) {
-
-    try {
-
-      await peer.addIceCandidate(
-        candidate
+    const message =
+      document.getElementById(
+        "message"
       );
 
-    }
 
-    catch (error) {
-
-      console.warn(
-        "ICE error:",
-        error
+    const status =
+      document.getElementById(
+        "status"
       );
 
-    }
 
-  }
-
-}
-
-
-// =====================================
-// PeerConnection
-// =====================================
-
-function createPeer() {
-
-  peer =
-    new RTCPeerConnection({
-
-      iceServers:
-        iceServersConfig,
-
-      bundlePolicy:
-        "max-bundle",
-
-      rtcpMuxPolicy:
-        "require",
-
-      iceCandidatePoolSize:
-        10
-
-    });
-
-
-  peer.onicecandidate =
-    event => {
-
-      if (
-        !event.candidate
-      ) {
-
-        return;
-
-      }
-
-      socket.emit(
-        "ice-candidate",
-        {
-
-          room,
-
-          candidate:
-            event.candidate
-
-        }
+    const cameraButtons =
+      document.getElementById(
+        "cameraButtons"
       );
 
-    };
 
-
-  peer.ontrack =
-    event => {
-
-      if (
-        !event.streams ||
-        !event.streams[0]
-      ) {
-
-        return;
-
-      }
-
-      remoteVideo.srcObject =
-        event.streams[0];
-
-      remoteVideo.style.display =
-        "block";
-
-      message.style.display =
-        "none";
-
-      status.textContent =
-        "映像・音声を受信しています";
-
-      remoteVideo
-        .play()
-        .catch(() => {});
-
-    };
-
-
-  peer.onconnectionstatechange =
-    () => {
-
-      console.log(
-        "Connection:",
-        peer.connectionState
+    const controlPanel =
+      document.getElementById(
+        "controlPanel"
       );
 
-      if (
-        peer.connectionState ===
-        "connected"
-      ) {
 
-        status.textContent =
-          "接続しました";
-
-      }
-
-      if (
-        peer.connectionState ===
-        "connecting"
-      ) {
-
-        status.textContent =
-          "接続しています…";
-
-      }
-
-      if (
-        peer.connectionState ===
-        "disconnected"
-      ) {
-
-        status.textContent =
-          "接続が不安定です";
-
-      }
-
-      if (
-        peer.connectionState ===
-        "failed"
-      ) {
-
-        status.textContent =
-          "接続に失敗しました";
-
-      }
-
-    };
-
-}
+    const qualitySelect =
+      document.getElementById(
+        "qualitySelect"
+      );
 
 
-// =====================================
-// カメラ取得
-// =====================================
-
-async function getCamera(
-  facingMode,
-  quality,
-  fps
-) {
-
-  let width = 1280;
-
-  let height = 720;
-
-  if (
-    quality === "480"
-  ) {
-
-    width = 854;
-    height = 480;
-
-  }
-
-  if (
-    quality === "720"
-  ) {
-
-    width = 1280;
-    height = 720;
-
-  }
-
-  if (
-    quality === "1080"
-  ) {
-
-    width = 1920;
-    height = 1080;
-
-  }
+    const fpsSelect =
+      document.getElementById(
+        "fpsSelect"
+      );
 
 
-  const frameRate =
-    fps === "auto"
-      ? 30
-      : Number(fps);
+    const autoInfo =
+      document.getElementById(
+        "autoInfo"
+      );
 
 
-  return navigator
-    .mediaDevices
-    .getUserMedia({
+    let peer = null;
 
-      video: {
+    let localStream = null;
 
-        width: {
-          ideal: width
-        },
+    let isCamera = false;
 
-        height: {
-          ideal: height
-        },
+    let isViewer = false;
 
-        frameRate: {
-          ideal: frameRate,
-          max: frameRate
-        },
+    let autoMode = false;
 
-        facingMode
+    let autoTimer = null;
 
+    let lastStats = null;
+
+    let currentAutoIndex = 1;
+
+    let lastAutoChange = 0;
+
+    let stableCount = 0;
+
+
+    /*
+      自動調整プロファイル
+
+      0 = 最低
+      1 = 標準
+      2 = 高画質
+      3 = 最高
+    */
+
+    const autoProfiles = [
+
+      {
+        quality: "480",
+        fps: "15"
       },
 
-      audio: {
+      {
+        quality: "720",
+        fps: "30"
+      },
 
-        echoCancellation:
-          true,
-
-        noiseSuppression:
-          true,
-
-        autoGainControl:
-          true
-
+      {
+        quality: "1080",
+        fps: "30"
       }
 
-    });
-
-}
+    ];
 
 
-// =====================================
-// カメラ開始
-// =====================================
+    // =====================================
+    // TURN設定
+    // =====================================
 
-document
-  .getElementById(
-    "cameraButton"
-  )
-  .addEventListener(
-    "click",
-    async () => {
+    async function loadTurnConfig() {
 
       try {
 
-        await loadTurnConfig();
-
-        status.textContent =
-          "カメラとマイクを起動しています…";
-
-
-        localStream =
-          await getCamera(
-            "environment",
-            "720",
-            "30"
+        const response =
+          await fetch(
+            "/api/turn-config"
           );
 
-
-        createPeer();
-
-
-        for (
-          const track of
-          localStream.getTracks()
-        ) {
-
-          peer.addTrack(
-            track,
-            localStream
+        if (!response.ok) {
+          throw new Error(
+            "TURN config unavailable"
           );
-
         }
 
-
-        socket.emit(
-          "join",
-          room
-        );
-
-
-        status.textContent =
-          "カメラとして接続中";
+        return await response.json();
 
       }
 
       catch (error) {
 
-        console.error(error);
+        console.warn(
+          "TURN設定を取得できません:",
+          error
+        );
 
-        status.textContent =
-          "カメラ・マイクを使用できません: " +
-          error.name;
+        return {
+          iceServers: [
+            {
+              urls:
+                "stun:stun.l.google.com:19302"
+            }
+          ]
+        };
 
       }
 
     }
-  );
 
 
-// =====================================
-// 閲覧開始
-// =====================================
+    // =====================================
+    // サーバー接続
+    // =====================================
 
-document
-  .getElementById(
-    "viewerButton"
-  )
-  .addEventListener(
-    "click",
-    async () => {
+    socket.on(
+      "connect",
+      () => {
 
-      await loadTurnConfig();
+        status.textContent =
+          "サーバーに接続しました";
 
-      createPeer();
+      }
+    );
 
-      socket.emit(
-        "join",
-        room
-      );
 
-      viewerControls.style.display =
-        "block";
+    socket.on(
+      "disconnect",
+      () => {
 
-      status.textContent =
-        "カメラを探しています…";
+        status.textContent =
+          "サーバーから切断されました";
+
+      }
+    );
+
+
+    // =====================================
+    // WebRTC
+    // =====================================
+
+    async function createPeer() {
+
+      const config =
+        await loadTurnConfig();
+
+
+      peer =
+        new RTCPeerConnection({
+
+          iceServers:
+            config.iceServers,
+
+          bundlePolicy:
+            "max-bundle",
+
+          rtcpMuxPolicy:
+            "require",
+
+          iceCandidatePoolSize:
+            10
+
+        });
+
+
+      peer.onicecandidate =
+        event => {
+
+          if (!event.candidate) {
+            return;
+          }
+
+          socket.emit(
+            "ice-candidate",
+            {
+              room: room,
+              candidate:
+                event.candidate
+            }
+          );
+
+        };
+
+
+      peer.ontrack =
+        event => {
+
+          if (!event.streams[0]) {
+            return;
+          }
+
+
+          remoteVideo.srcObject =
+            event.streams[0];
+
+
+          remoteVideo.style.display =
+            "block";
+
+
+          message.style.display =
+            "none";
+
+
+          status.textContent =
+            "映像・音声を受信しています";
+
+
+          remoteVideo
+            .play()
+            .catch(() => {});
+
+        };
+
+
+      peer.onconnectionstatechange =
+        () => {
+
+          if (!peer) {
+            return;
+          }
+
+
+          const state =
+            peer.connectionState;
+
+
+          if (state === "connected") {
+
+            status.textContent =
+              "接続しました";
+
+          }
+
+
+          if (state === "disconnected") {
+
+            status.textContent =
+              "接続が不安定です";
+
+          }
+
+
+          if (state === "failed") {
+
+            status.textContent =
+              "接続に失敗しました";
+
+          }
+
+        };
 
     }
-  );
 
 
-// =====================================
-// 画質・FPS変更
-// =====================================
+    // =====================================
+    // カメラ取得
+    // =====================================
 
-document
-  .getElementById(
-    "applyQuality"
-  )
-  .addEventListener(
-    "click",
-    () => {
+    async function startCamera(
+      facingMode,
+      quality = "720",
+      fps = "30"
+    ) {
 
-      const quality =
-        qualitySelect.value;
+      status.textContent =
+        "カメラを切り替えています…";
 
-      const fps =
-        fpsSelect.value;
+
+      try {
+
+        if (localStream) {
+
+          localStream
+            .getTracks()
+            .forEach(
+              track =>
+                track.stop()
+            );
+
+        }
+
+
+        let width = 1280;
+
+        let height = 720;
+
+
+        if (quality === "480") {
+
+          width = 854;
+          height = 480;
+
+        }
+
+        else if (
+          quality === "1080"
+        ) {
+
+          width = 1920;
+          height = 1080;
+
+        }
+
+
+        let frameRate =
+          Number(fps);
+
+
+        if (!Number.isFinite(frameRate)) {
+          frameRate = 30;
+        }
+
+
+        const newStream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+
+              video: {
+
+                width: {
+                  ideal: width,
+                  max: width
+                },
+
+                height: {
+                  ideal: height,
+                  max: height
+                },
+
+                frameRate: {
+                  ideal: frameRate,
+                  max: frameRate
+                },
+
+                facingMode:
+                  facingMode
+
+              },
+
+              audio: {
+
+                echoCancellation:
+                  true,
+
+                noiseSuppression:
+                  true,
+
+                autoGainControl:
+                  true
+
+              }
+
+            });
+
+
+        localStream =
+          newStream;
+
+
+        const videoTrack =
+          localStream
+            .getVideoTracks()[0];
+
+
+        if (peer) {
+
+          const sender =
+            peer
+              .getSenders()
+              .find(
+                sender =>
+                  sender.track &&
+                  sender.track.kind ===
+                    "video"
+              );
+
+
+          if (sender) {
+
+            await sender.replaceTrack(
+              videoTrack
+            );
+
+          }
+
+          else {
+
+            peer.addTrack(
+              videoTrack,
+              localStream
+            );
+
+          }
+
+        }
+
+
+        status.textContent =
+          facingMode === "environment"
+            ? "外カメラに切り替えました"
+            : "内カメラに切り替えました";
+
+      }
+
+
+      catch (error) {
+
+        console.error(error);
+
+
+        status.textContent =
+          "カメラ切替エラー: "
+          + error.name;
+
+      }
+
+    }
+
+
+    // =====================================
+    // カメラ開始
+    // =====================================
+
+    document
+      .getElementById(
+        "cameraButton"
+      )
+      .addEventListener(
+        "click",
+        async () => {
+
+          isCamera = true;
+
+
+          status.textContent =
+            "カメラとマイクを起動しています…";
+
+
+          try {
+
+            await createPeer();
+
+
+            localStream =
+              await navigator
+                .mediaDevices
+                .getUserMedia({
+
+                  video: {
+
+                    width: {
+                      ideal: 1280,
+                      max: 1280
+                    },
+
+                    height: {
+                      ideal: 720,
+                      max: 720
+                    },
+
+                    frameRate: {
+                      ideal: 30,
+                      max: 30
+                    },
+
+                    facingMode:
+                      "environment"
+
+                  },
+
+                  audio: {
+
+                    echoCancellation:
+                      true,
+
+                    noiseSuppression:
+                      true,
+
+                    autoGainControl:
+                      true
+
+                  }
+
+                });
+
+
+            localStream
+              .getTracks()
+              .forEach(
+                track => {
+
+                  peer.addTrack(
+                    track,
+                    localStream
+                  );
+
+                }
+              );
+
+
+            socket.emit(
+              "join",
+              room
+            );
+
+
+            status.textContent =
+              "カメラとして接続中";
+
+          }
+
+
+          catch (error) {
+
+            console.error(error);
+
+
+            status.textContent =
+              "カメラ・マイクを使用できません: "
+              + error.name;
+
+          }
+
+        }
+      );
+
+
+    // =====================================
+    // 閲覧開始
+    // =====================================
+
+    document
+      .getElementById(
+        "viewerButton"
+      )
+      .addEventListener(
+        "click",
+        async () => {
+
+          isViewer = true;
+
+
+          await createPeer();
+
+
+          socket.emit(
+            "join",
+            room
+          );
+
+
+          status.textContent =
+            "カメラを探しています…";
+
+
+          cameraButtons.style.display =
+            "flex";
+
+
+          controlPanel.style.display =
+            "block";
+
+        }
+      );
+
+
+    // =====================================
+    // 外カメラ
+    // =====================================
+
+    document
+      .getElementById(
+        "rearButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          socket.emit(
+            "switch-camera",
+            {
+              room: room,
+              camera: "environment"
+            }
+          );
+
+
+          status.textContent =
+            "外カメラへ切り替えています…";
+
+        }
+      );
+
+
+    // =====================================
+    // 内カメラ
+    // =====================================
+
+    document
+      .getElementById(
+        "frontButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          socket.emit(
+            "switch-camera",
+            {
+              room: room,
+              camera: "user"
+            }
+          );
+
+
+          status.textContent =
+            "内カメラへ切り替えています…";
+
+        }
+      );
+
+
+    // =====================================
+    // 手動設定
+    // =====================================
+
+    document
+      .getElementById(
+        "applyQualityButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          const quality =
+            qualitySelect.value;
+
+          const fps =
+            fpsSelect.value;
+
+
+          if (
+            quality === "auto" ||
+            fps === "auto"
+          ) {
+
+            startAutoMode();
+
+            return;
+
+          }
+
+
+          stopAutoMode();
+
+
+          socket.emit(
+            "change-quality",
+            {
+              room: room,
+              quality: quality,
+              fps: fps
+            }
+          );
+
+
+          autoInfo.textContent =
+            `手動設定：${quality}p / ${fps} FPS`;
+
+
+          status.textContent =
+            "映像設定を変更しています…";
+
+        }
+      );
+
+
+    // =====================================
+    // 自動モード開始
+    // =====================================
+
+    function startAutoMode() {
+
+      autoMode = true;
+
+      lastStats = null;
+
+      stableCount = 0;
+
+      lastAutoChange = 0;
+
+
+      qualitySelect.value =
+        "auto";
+
+      fpsSelect.value =
+        "auto";
+
+
+      autoInfo.textContent =
+        "自動調整：通信状態を確認しています…";
+
+
+      if (autoTimer) {
+        clearInterval(autoTimer);
+      }
+
+
+      autoTimer =
+        setInterval(
+          checkNetwork,
+          3000
+        );
+
+
+      checkNetwork();
+
+    }
+
+
+    // =====================================
+    // 自動モード停止
+    // =====================================
+
+    function stopAutoMode() {
+
+      autoMode = false;
+
+
+      if (autoTimer) {
+
+        clearInterval(
+          autoTimer
+        );
+
+        autoTimer = null;
+
+      }
+
+
+      autoInfo.textContent =
+        "自動調整：停止";
+
+    }
+
+
+    // =====================================
+    // ネットワーク状態確認
+    // =====================================
+
+    async function checkNetwork() {
+
+      if (!autoMode) {
+        return;
+      }
+
+
+      if (!peer) {
+        return;
+      }
+
+
+      if (
+        peer.connectionState !==
+        "connected"
+      ) {
+
+        autoInfo.textContent =
+          "自動調整：接続待機中";
+
+        return;
+
+      }
+
+
+      try {
+
+        const stats =
+          await peer.getStats();
+
+
+        let inbound = null;
+
+        let candidatePair = null;
+
+
+        stats.forEach(
+          report => {
+
+            if (
+              report.type ===
+                "inbound-rtp" &&
+              report.kind ===
+                "video"
+            ) {
+
+              inbound = report;
+
+            }
+
+
+            if (
+              report.type ===
+                "candidate-pair" &&
+              report.state ===
+                "succeeded"
+            ) {
+
+              candidatePair =
+                report;
+
+            }
+
+          }
+        );
+
+
+        if (!inbound) {
+          return;
+        }
+
+
+        const now =
+          performance.now();
+
+
+        if (!lastStats) {
+
+          lastStats = {
+            bytes:
+              inbound.bytesReceived || 0,
+
+            packetsReceived:
+              inbound.packetsReceived || 0,
+
+            packetsLost:
+              inbound.packetsLost || 0,
+
+            framesDropped:
+              inbound.framesDropped || 0,
+
+            time: now
+
+          };
+
+
+          autoInfo.textContent =
+            "自動調整：測定中…";
+
+          return;
+
+        }
+
+
+        const seconds =
+          (now - lastStats.time)
+          / 1000;
+
+
+        const bytes =
+          inbound.bytesReceived || 0;
+
+
+        const packetsReceived =
+          inbound.packetsReceived || 0;
+
+
+        const packetsLost =
+          inbound.packetsLost || 0;
+
+
+        const framesDropped =
+          inbound.framesDropped || 0;
+
+
+        const bitrate =
+          seconds > 0
+            ? (
+                (bytes - lastStats.bytes)
+                * 8
+                / seconds
+              )
+            : 0;
+
+
+        const receivedDelta =
+          Math.max(
+            0,
+            packetsReceived -
+              lastStats.packetsReceived
+          );
+
+
+        const lostDelta =
+          Math.max(
+            0,
+            packetsLost -
+              lastStats.packetsLost
+          );
+
+
+        const lossRate =
+          (
+            receivedDelta +
+            lostDelta
+          ) > 0
+
+            ? lostDelta /
+              (
+                receivedDelta +
+                lostDelta
+              )
+
+            : 0;
+
+
+        const droppedDelta =
+          Math.max(
+            0,
+            framesDropped -
+              lastStats.framesDropped
+          );
+
+
+        let rtt = 0;
+
+
+        if (
+          candidatePair &&
+          typeof candidatePair.currentRoundTripTime ===
+            "number"
+        ) {
+
+          rtt =
+            candidatePair.currentRoundTripTime;
+
+        }
+
+
+        lastStats = {
+
+          bytes: bytes,
+
+          packetsReceived:
+            packetsReceived,
+
+          packetsLost:
+            packetsLost,
+
+          framesDropped:
+            framesDropped,
+
+          time: now
+
+        };
+
+
+        const mbps =
+          bitrate / 1000000;
+
+
+        autoInfo.textContent =
+          `自動調整：${mbps.toFixed(2)} Mbps`
+          + ` / loss ${(lossRate * 100).toFixed(1)}%`
+          + ` / RTT ${(rtt * 1000).toFixed(0)}ms`;
+
+
+        // =================================
+        // 悪化判定
+        // =================================
+
+        const bad =
+          lossRate > 0.05 ||
+          droppedDelta > 30 ||
+          rtt > 0.35 ||
+          mbps < 0.55;
+
+
+        const good =
+          lossRate < 0.015 &&
+          droppedDelta < 8 &&
+          rtt < 0.20 &&
+          mbps > 1.2;
+
+
+        const nowTime =
+          Date.now();
+
+
+        // =================================
+        // 通信が悪い
+        // =================================
+
+        if (bad) {
+
+          stableCount = 0;
+
+
+          if (
+            nowTime -
+              lastAutoChange <
+              8000
+          ) {
+
+            return;
+
+          }
+
+
+          if (
+            currentAutoIndex >
+            0
+          ) {
+
+            currentAutoIndex--;
+
+            applyAutoProfile();
+
+          }
+
+        }
+
+
+        // =================================
+        // 通信が良い
+        // =================================
+
+        else if (good) {
+
+          stableCount++;
+
+
+          /*
+            3回連続で安定したら
+            一段階上げる
+          */
+
+          if (
+            stableCount >= 3 &&
+            currentAutoIndex <
+              autoProfiles.length - 1 &&
+            nowTime -
+              lastAutoChange >
+              10000
+          ) {
+
+            currentAutoIndex++;
+
+            stableCount = 0;
+
+            applyAutoProfile();
+
+          }
+
+        }
+
+
+        else {
+
+          stableCount = 0;
+
+        }
+
+      }
+
+
+      catch (error) {
+
+        console.error(
+          "自動調整エラー:",
+          error
+        );
+
+      }
+
+    }
+
+
+    // =====================================
+    // 自動プロファイル適用
+    // =====================================
+
+    function applyAutoProfile() {
+
+      const profile =
+        autoProfiles[
+          currentAutoIndex
+        ];
+
+
+      if (!profile) {
+        return;
+      }
+
+
+      lastAutoChange =
+        Date.now();
 
 
       socket.emit(
         "change-quality",
         {
-
-          room,
-
-          quality,
-
-          fps
-
+          room: room,
+          quality:
+            profile.quality,
+          fps:
+            profile.fps
         }
       );
+
+
+      autoInfo.textContent =
+        `自動調整：${profile.quality}p / `
+        + `${profile.fps} FPS に変更`;
 
 
       status.textContent =
-        "画質・FPSを変更しています…";
+        "通信状態に合わせて映像を調整しています…";
 
     }
-  );
 
 
-// =====================================
-// カメラ切替
-// =====================================
+    // =====================================
+    // カメラ側：切替命令
+    // =====================================
 
-document
-  .getElementById(
-    "rearButton"
-  )
-  .addEventListener(
-    "click",
-    () => {
+    socket.on(
+      "switch-camera",
+      async data => {
 
-      socket.emit(
-        "switch-camera",
-        {
-
-          room,
-
-          camera:
-            "environment"
-
+        if (!localStream) {
+          return;
         }
-      );
-
-    }
-  );
 
 
-document
-  .getElementById(
-    "frontButton"
-  )
-  .addEventListener(
-    "click",
-    () => {
-
-      socket.emit(
-        "switch-camera",
-        {
-
-          room,
-
-          camera:
-            "user"
-
-        }
-      );
-
-    }
-  );
-
-
-// =====================================
-// カメラ切替命令
-// =====================================
-
-socket.on(
-  "switch-camera",
-  async data => {
-
-    if (
-      !localStream ||
-      !data ||
-      !data.camera
-    ) {
-
-      return;
-
-    }
-
-
-    try {
-
-      const oldVideo =
-        localStream
-          .getVideoTracks()[0];
-
-
-      const audio =
-        localStream
-          .getAudioTracks()[0];
-
-
-      const newStream =
-        await getCamera(
-          data.camera,
-          qualitySelect.value ===
-            "auto"
-            ? "720"
-            : qualitySelect.value,
-          fpsSelect.value ===
-            "auto"
-            ? "30"
-            : fpsSelect.value
+        await startCamera(
+          data.camera
         );
 
-
-      const newVideo =
-        newStream
-          .getVideoTracks()[0];
-
-
-      if (oldVideo) {
-        oldVideo.stop();
       }
+    );
 
 
-      if (audio) {
+    // =====================================
+    // カメラ側：画質変更
+    // =====================================
 
-        localStream =
-          new MediaStream([
-            audio,
-            newVideo
-          ]);
+    socket.on(
+      "change-quality",
+      async data => {
 
-      }
+        if (
+          !localStream ||
+          !peer
+        ) {
 
-      else {
+          return;
 
-        localStream =
-          new MediaStream([
-            newVideo
-          ]);
-
-      }
+        }
 
 
-      if (peer) {
+        try {
 
-        const sender =
-          peer
-            .getSenders()
-            .find(
-              s =>
-                s.track &&
-                s.track.kind ===
-                  "video"
-            );
+          let width = 1280;
+
+          let height = 720;
 
 
-        if (sender) {
+          if (
+            data.quality ===
+            "480"
+          ) {
 
-          await sender.replaceTrack(
-            newVideo
+            width = 854;
+            height = 480;
+
+          }
+
+
+          else if (
+            data.quality ===
+            "1080"
+          ) {
+
+            width = 1920;
+            height = 1080;
+
+          }
+
+
+          let fps =
+            Number(data.fps);
+
+
+          if (
+            !Number.isFinite(fps)
+          ) {
+
+            fps = 30;
+
+          }
+
+
+          const videoTrack =
+            localStream
+              .getVideoTracks()[0];
+
+
+          if (videoTrack) {
+
+            try {
+
+              await videoTrack.applyConstraints({
+
+                width: {
+                  ideal: width,
+                  max: width
+                },
+
+                height: {
+                  ideal: height,
+                  max: height
+                },
+
+                frameRate: {
+                  ideal: fps,
+                  max: fps
+                }
+
+              });
+
+            }
+
+            catch (constraintError) {
+
+              console.warn(
+                "applyConstraints失敗:",
+                constraintError
+              );
+
+            }
+
+          }
+
+
+          const sender =
+            peer
+              .getSenders()
+              .find(
+                sender =>
+                  sender.track &&
+                  sender.track.kind ===
+                    "video"
+              );
+
+
+          if (sender) {
+
+            const parameters =
+              sender.getParameters();
+
+
+            if (
+              !parameters.encodings ||
+              !parameters.encodings.length
+            ) {
+
+              parameters.encodings = [
+                {}
+              ];
+
+            }
+
+
+            const encoding =
+              parameters.encodings[0];
+
+
+            encoding.maxFramerate =
+              fps;
+
+
+            /*
+              おおよその最大ビットレート
+
+              480p/15  = 500kbps
+              480p/24  = 700kbps
+              720p/30  = 1.5Mbps
+              1080p/30 = 2.5Mbps
+            */
+
+            let bitrate =
+              1500000;
+
+
+            if (
+              data.quality ===
+                "480" &&
+              fps <= 15
+            ) {
+
+              bitrate = 500000;
+
+            }
+
+            else if (
+              data.quality ===
+                "480"
+            ) {
+
+              bitrate = 700000;
+
+            }
+
+            else if (
+              data.quality ===
+                "1080"
+            ) {
+
+              bitrate = 2500000;
+
+            }
+
+
+            encoding.maxBitrate =
+              bitrate;
+
+
+            try {
+
+              await sender.setParameters(
+                parameters
+              );
+
+            }
+
+            catch (parameterError) {
+
+              console.warn(
+                "送信設定変更エラー:",
+                parameterError
+              );
+
+            }
+
+          }
+
+
+          status.textContent =
+            `映像設定：${data.quality}p / ${fps} FPS`;
+
+        }
+
+
+        catch (error) {
+
+          console.error(
+            "画質変更エラー:",
+            error
           );
 
         }
 
       }
+    );
 
 
-      status.textContent =
-        data.camera ===
-        "environment"
-          ? "外カメラに切り替えました"
-          : "内カメラに切り替えました";
+    // =====================================
+    // 相手が入室
+    // =====================================
 
-    }
+    socket.on(
+      "peer-joined",
+      async () => {
 
-    catch (error) {
+        if (
+          !localStream ||
+          !peer
+        ) {
 
-      console.error(error);
+          return;
 
-      status.textContent =
-        "カメラ切替に失敗しました";
-
-    }
-
-  }
-);
+        }
 
 
-// =====================================
-// 画質変更命令
-// =====================================
+        try {
 
-socket.on(
-  "change-quality",
-  async data => {
+          const offer =
+            await peer.createOffer({
 
-    if (
-      !localStream ||
-      !data
-    ) {
+              offerToReceiveAudio:
+                true,
 
-      return;
+              offerToReceiveVideo:
+                true
 
-    }
+            });
 
 
-    try {
-
-      const currentVideo =
-        localStream
-          .getVideoTracks()[0];
-
-      const currentAudio =
-        localStream
-          .getAudioTracks()[0];
+          await peer.setLocalDescription(
+            offer
+          );
 
 
-      let facingMode =
-        "environment";
-
-
-      if (
-        currentVideo
-          ?.getSettings()
-          ?.facingMode
-      ) {
-
-        facingMode =
-          currentVideo
-            .getSettings()
-            .facingMode;
-
-      }
-
-
-      const newStream =
-        await getCamera(
-
-          facingMode,
-
-          data.quality ===
-            "auto"
-            ? "720"
-            : data.quality,
-
-          data.fps ===
-            "auto"
-            ? "30"
-            : data.fps
-
-        );
-
-
-      const newVideo =
-        newStream
-          .getVideoTracks()[0];
-
-
-      if (currentVideo) {
-        currentVideo.stop();
-      }
-
-
-      if (currentAudio) {
-
-        localStream =
-          new MediaStream([
-            currentAudio,
-            newVideo
-          ]);
-
-      }
-
-      else {
-
-        localStream =
-          new MediaStream([
-            newVideo
-          ]);
-
-      }
-
-
-      if (peer) {
-
-        const sender =
-          peer
-            .getSenders()
-            .find(
-              s =>
-                s.track &&
-                s.track.kind ===
-                  "video"
-            );
-
-
-        if (sender) {
-
-          await sender.replaceTrack(
-            newVideo
+          socket.emit(
+            "offer",
+            {
+              room: room,
+              offer: offer
+            }
           );
 
         }
 
-      }
 
+        catch (error) {
 
-      status.textContent =
-        "画質・FPSを変更しました";
-
-    }
-
-    catch (error) {
-
-      console.error(error);
-
-      status.textContent =
-        "指定した画質・FPSに対応できませんでした";
-
-    }
-
-  }
-);
-
-
-// =====================================
-// 相手が入室
-// =====================================
-
-socket.on(
-  "peer-joined",
-  async () => {
-
-    if (
-      !localStream ||
-      !peer
-    ) {
-
-      return;
-
-    }
-
-
-    try {
-
-      const offer =
-        await peer.createOffer({
-
-          offerToReceiveAudio:
-            true,
-
-          offerToReceiveVideo:
-            true
-
-        });
-
-
-      await peer.setLocalDescription(
-        offer
-      );
-
-
-      socket.emit(
-        "offer",
-        {
-
-          room,
-
-          offer
+          console.error(error);
 
         }
-      );
 
-    }
-
-    catch (error) {
-
-      console.error(
-        "Offer error:",
-        error
-      );
-
-    }
-
-  }
-);
-
-
-// =====================================
-// Offer
-// =====================================
-
-socket.on(
-  "offer",
-  async offer => {
-
-    try {
-
-      if (!peer) {
-        createPeer();
       }
+    );
 
 
-      await peer.setRemoteDescription(
-        offer
-      );
+    // =====================================
+    // Offer
+    // =====================================
+
+    socket.on(
+      "offer",
+      async offer => {
+
+        try {
+
+          if (!peer) {
+
+            await createPeer();
+
+          }
 
 
-      await applyPendingIceCandidates();
+          await peer.setRemoteDescription(
+            offer
+          );
 
 
-      const answer =
-        await peer.createAnswer();
+          const answer =
+            await peer.createAnswer();
 
 
-      await peer.setLocalDescription(
-        answer
-      );
+          await peer.setLocalDescription(
+            answer
+          );
 
 
-      socket.emit(
-        "answer",
-        {
-
-          room,
-
-          answer
+          socket.emit(
+            "answer",
+            {
+              room: room,
+              answer: answer
+            }
+          );
 
         }
-      );
-
-    }
-
-    catch (error) {
-
-      console.error(
-        "Answer error:",
-        error
-      );
-
-    }
-
-  }
-);
 
 
-// =====================================
-// Answer
-// =====================================
+        catch (error) {
 
-socket.on(
-  "answer",
-  async answer => {
-
-    try {
-
-      if (!peer) {
-        return;
-      }
+          console.error(error);
 
 
-      await peer.setRemoteDescription(
-        answer
-      );
+          status.textContent =
+            "接続処理でエラーが発生しました";
 
-
-      await applyPendingIceCandidates();
-
-    }
-
-    catch (error) {
-
-      console.error(
-        "Answer受信エラー:",
-        error
-      );
-
-    }
-
-  }
-);
-
-
-// =====================================
-// ICE Candidate
-// =====================================
-
-socket.on(
-  "ice-candidate",
-  async candidate => {
-
-    try {
-
-      if (!peer) {
-        return;
-      }
-
-
-      if (
-        !peer.remoteDescription
-      ) {
-
-        pendingIceCandidates.push(
-          candidate
-        );
-
-        return;
+        }
 
       }
+    );
 
 
-      await peer.addIceCandidate(
-        candidate
-      );
+    // =====================================
+    // Answer
+    // =====================================
 
-    }
+    socket.on(
+      "answer",
+      async answer => {
 
-    catch (error) {
+        try {
 
-      console.warn(
-        "ICE candidate error:",
-        error
-      );
-
-    }
-
-  }
-);
+          if (!peer) {
+            return;
+          }
 
 
-// =====================================
-// 接続状態
-// =====================================
+          await peer.setRemoteDescription(
+            answer
+          );
 
-socket.on(
-  "connect",
-  () => {
-
-    status.textContent =
-      "サーバーに接続しました";
-
-  }
-);
+        }
 
 
-socket.on(
-  "disconnect",
-  () => {
+        catch (error) {
 
-    status.textContent =
-      "サーバーから切断されました";
+          console.error(error);
 
-  }
-);
+        }
 
-</script>
+      }
+    );
+
+
+    // =====================================
+    // ICE
+    // =====================================
+
+    socket.on(
+      "ice-candidate",
+      async candidate => {
+
+        try {
+
+          if (!peer) {
+            return;
+          }
+
+
+          if (
+            peer.remoteDescription
+          ) {
+
+            await peer.addIceCandidate(
+              candidate
+            );
+
+          }
+
+        }
+
+
+        catch (error) {
+
+          console.error(error);
+
+        }
+
+      }
+    );
+
+  </script>
 
 </body>
+
 </html>
